@@ -299,25 +299,8 @@
 
       /* 拖拽样式 */
       .draggable-card {
-        cursor: move;
         transition: all 0.2s;
         position: relative;
-      }
-      .draggable-card::before {
-        content: "⋮⋮";
-        position: absolute;
-        left: 8px;
-        top: 8px;
-        color: #cbd5e1;
-        font-size: 14px;
-        line-height: 1;
-        letter-spacing: -2px;
-        opacity: 0;
-        transition: opacity 0.2s;
-        z-index: 5;
-      }
-      .draggable-card:hover::before {
-        opacity: 1;
       }
       .draggable-card.dragging {
         opacity: 0.5;
@@ -326,6 +309,39 @@
       .draggable-card.drag-over {
         border-color: #6366f1;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      /* 拖拽手柄 */
+      .drag-handle {
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: move;
+        padding: 8px 4px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 10;
+        user-select: none;
+      }
+      .draggable-card:hover .drag-handle {
+        opacity: 1;
+      }
+      .drag-handle:hover {
+        opacity: 1 !important;
+      }
+      .drag-handle-icon {
+        color: #94a3b8;
+        font-size: 16px;
+        line-height: 1;
+        letter-spacing: -3px;
+        display: block;
+      }
+      .drag-handle:hover .drag-handle-icon {
+        color: #6366f1;
+      }
+      .drag-handle:active {
+        cursor: grabbing;
       }
 
       /* 表头拖拽样式 */
@@ -345,26 +361,41 @@
 
       /* 表格行斑马纹效果 */
       tbody tr:nth-child(even) {
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
       }
       tbody tr:nth-child(odd) {
-        background-color: #ffffff;
-      }
-      tbody tr:hover {
-        background-color: #f1f5f9 !important;
-      }
-      tbody tr td {
-        border-bottom: 1px solid #e2e8f0;
-      }
-      /* 固定列继承行背景色 */
-      tbody tr:nth-child(even) td:first-child {
         background-color: #f8fafc;
       }
+      tbody tr:hover {
+        background-color: #e2e8f0 !important;
+      }
+
+      /* 所有单元格继承行背景色 */
+      tbody tr td {
+        border-bottom: 1px solid #e2e8f0;
+        background-color: inherit;
+      }
+
+      /* 固定列背景色 */
+      tbody tr:nth-child(even) td:first-child {
+        background-color: #f1f5f9;
+      }
       tbody tr:nth-child(odd) td:first-child {
-        background-color: #ffffff;
+        background-color: #f8fafc;
       }
       tbody tr:hover td:first-child {
-        background-color: #f1f5f9 !important;
+        background-color: #e2e8f0 !important;
+      }
+
+      /* 其他列背景色 */
+      tbody tr:nth-child(even) td:not(:first-child) {
+        background-color: #f1f5f9;
+      }
+      tbody tr:nth-child(odd) td:not(:first-child) {
+        background-color: #f8fafc;
+      }
+      tbody tr:hover td:not(:first-child) {
+        background-color: #e2e8f0 !important;
       }
     </style>
   </head>
@@ -567,12 +598,21 @@
               draggingCardIndex === index ? 'dragging' : '',
               dragOverCardIndex === index ? 'drag-over' : ''
             ]"
-            draggable="true"
-            @dragstart="handleCardDragStart(index, $event)"
-            @dragend="handleCardDragEnd"
             @dragover.prevent="handleCardDragOver(index, $event)"
             @drop="handleCardDrop(index)"
           >
+            <!-- 拖拽手柄 -->
+            <div
+              class="drag-handle"
+              draggable="true"
+              @dragstart="handleCardDragStart(index, $event)"
+              @dragend="handleCardDragEnd"
+              title="拖动排序"
+            >
+              <span class="drag-handle-icon">⋮⋮</span>
+            </div>
+
+            <!-- 删除按钮 -->
             <div
               v-if="!source.isOfficial"
               @click="removeSource(index)"
@@ -809,7 +849,7 @@
                 class="group transition-colors"
               >
                 <td
-                  class="p-3 border-r border-slate-200 font-mono text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50 z-20 text-xs border-b border-slate-100 shadow-sm"
+                  class="p-3 border-r border-slate-200 font-mono text-slate-700 sticky left-0 z-20 text-xs border-b border-slate-100 shadow-sm"
                 >
                   <div class="font-bold">{{ row.baseName }}</div>
                   <div
@@ -837,7 +877,7 @@
                 <td
                   v-for="source in validSources"
                   :key="source.id"
-                  class="p-2 border-r border-slate-100 bg-white group-hover:bg-slate-50"
+                  class="p-2 border-r border-slate-100"
                 >
                   <div
                     v-if="row.variants[source.id] && row.variants[source.id].length > 0"
