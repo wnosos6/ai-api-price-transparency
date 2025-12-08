@@ -1,665 +1,2175 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>wn_os AI API 价格透视镜</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
-        .card { background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        [v-cloak] { display: none; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .variant-item { border-bottom: 1px dashed #f1f5f9; padding: 6px 0; }
-        .variant-item:last-child { border-bottom: none; }
-        
-        .badge-diff { font-size: 9px; padding: 1px 3px; border-radius: 3px; background: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle;}
-        .badge-discount { font-size: 9px; font-weight: bold; border-radius: 3px; padding: 1px 3px; margin-left: 4px; cursor: help; }
-        .badge-discount.good { background: #dcfce7; color: #166534; } 
-        .badge-discount.normal { background: #f3f4f6; color: #374151; } 
-        .badge-discount.bad { background: #fee2e2; color: #991b1b; }
-        
-        /* 弹窗通用样式 */
-        .global-popover {
-            position: fixed; background: white; border: 1px solid #cbd5e1;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.2); border-radius: 8px; z-index: 9999;
-            opacity: 0; pointer-events: none; transition: opacity 0.1s;
-        }
-        .global-popover.active { opacity: 1; pointer-events: auto; }
-        
-        /* 价格透视弹窗特定样式 */
-        .price-popover { min-width: 200px; width: max-content; max-width: 350px; padding: 6px; transform: translateX(-50%); }
-        .popover-arrow {
-            position: absolute; left: 50%; margin-left: -6px; width: 12px; height: 12px;
-            background: white; transform: rotate(45deg); border: 1px solid #cbd5e1; z-index: -1;
-        }
-        .popover-pos-top .popover-arrow { bottom: -6px; border-top-color: transparent; border-left-color: transparent; }
-        .popover-pos-top { transform: translateX(-50%) translateY(-100%); margin-top: -10px; }
-        .popover-pos-bottom .popover-arrow { top: -6px; border-bottom-color: transparent; border-right-color: transparent; }
-        .popover-pos-bottom { transform: translateX(-50%); margin-top: 10px; }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f8fafc;
+      }
+      .card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+      }
+      [v-cloak] {
+        display: none;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
 
-        /* 映射设置弹窗样式 */
-        .rename-modal { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 500px; max-width: 90vw; padding: 16px; }
-        .rename-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 9998; }
+      .variant-item {
+        border-bottom: 1px dashed #f1f5f9;
+        padding: 6px 0;
+      }
+      .variant-item:last-child {
+        border-bottom: none;
+      }
 
-        .group-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 12px; font-size: 12px; border-radius: 6px; cursor: default;
-            border-bottom: 1px solid #f8fafc; color: #334155;
-        }
-        .group-item:last-child { border-bottom: none; }
-        .group-item.clickable:hover { background-color: #eff6ff; cursor: pointer; color: #2563eb; }
-        .group-item.active { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+      .badge-diff {
+        font-size: 9px;
+        padding: 1px 3px;
+        border-radius: 3px;
+        background: #eff6ff;
+        color: #3b82f6;
+        border: 1px solid #dbeafe;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .badge-discount {
+        font-size: 9px;
+        font-weight: bold;
+        border-radius: 3px;
+        padding: 1px 3px;
+        margin-left: 4px;
+        cursor: help;
+      }
+      .badge-discount.good {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .badge-discount.normal {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      .badge-discount.bad {
+        background: #fee2e2;
+        color: #991b1b;
+      }
 
-        .segmented-control { display: flex; background: #f1f5f9; padding: 3px; border-radius: 6px; height: 100%; }
-        .segmented-control button { 
-            flex: 1; padding: 0 12px; font-size: 11px; font-weight: 600; border-radius: 4px; 
-            color: #64748b; transition: all 0.2s; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; line-height: 1.1; white-space: nowrap;
-        }
-        .segmented-control button.active { background: white; color: #2563eb; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .segmented-control button:hover:not(.active) { color: #334155; }
-        
-        .toggle-wrapper { display: flex; align-items: center; height: 16px; }
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
-        .toggle-checkbox { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
-        .toggle-label { width: 30px; height: 16px; background-color: #cbd5e1; border-radius: 9999px; position: relative; cursor: pointer; transition: background-color 0.2s ease-in; display: block; }
-        .toggle-label:after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background-color: white; border-radius: 50%; transition: transform 0.2s; }
-        .toggle-checkbox:checked + .toggle-label:after { transform: translateX(14px); }
+      /* 弹窗通用样式 */
+      .global-popover {
+        position: fixed;
+        background: white;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.1s;
+      }
+      .global-popover.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
+      /* 价格透视弹窗特定样式 */
+      .price-popover {
+        min-width: 200px;
+        width: max-content;
+        max-width: 350px;
+        padding: 6px;
+        transform: translateX(-50%);
+      }
+      .popover-arrow {
+        position: absolute;
+        left: 50%;
+        margin-left: -6px;
+        width: 12px;
+        height: 12px;
+        background: white;
+        transform: rotate(45deg);
+        border: 1px solid #cbd5e1;
+        z-index: -1;
+      }
+      .popover-pos-top .popover-arrow {
+        bottom: -6px;
+        border-top-color: transparent;
+        border-left-color: transparent;
+      }
+      .popover-pos-top {
+        transform: translateX(-50%) translateY(-100%);
+        margin-top: -10px;
+      }
+      .popover-pos-bottom .popover-arrow {
+        top: -6px;
+        border-bottom-color: transparent;
+        border-right-color: transparent;
+      }
+      .popover-pos-bottom {
+        transform: translateX(-50%);
+        margin-top: 10px;
+      }
 
-        th, td { white-space: nowrap; vertical-align: top; }
-        .sub-price { font-size: 9px; color: #94a3b8; margin-top: 1px; display: block; }
-        
-        .sort-btn { cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; opacity: 0.4; background: #f1f5f9; height: 24px; }
-        .sort-btn:hover { background: #e2e8f0; opacity: 0.8; }
-        .sort-btn.active { opacity: 1; background: #dbeafe; color: #2563eb; font-weight: bold; }
-        .sort-icon { font-size: 10px; min-width: 12px; text-align: center;}
+      /* 映射设置弹窗样式 */
+      .rename-modal {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        max-width: 90vw;
+        padding: 16px;
+      }
+      .rename-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 9998;
+      }
+
+      .group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        font-size: 12px;
+        border-radius: 6px;
+        cursor: default;
+        border-bottom: 1px solid #f8fafc;
+        color: #334155;
+      }
+      .group-item:last-child {
+        border-bottom: none;
+      }
+      .group-item.clickable:hover {
+        background-color: #eff6ff;
+        cursor: pointer;
+        color: #2563eb;
+      }
+      .group-item.active {
+        background-color: #f1f5f9;
+        font-weight: bold;
+        color: #0f172a;
+      }
+
+      .segmented-control {
+        display: flex;
+        background: #f1f5f9;
+        padding: 3px;
+        border-radius: 6px;
+        height: 100%;
+      }
+      .segmented-control button {
+        flex: 1;
+        padding: 0 12px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 4px;
+        color: #64748b;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+      .segmented-control button.active {
+        background: white;
+        color: #2563eb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+      .segmented-control button:hover:not(.active) {
+        color: #334155;
+      }
+
+      .toggle-wrapper {
+        display: flex;
+        align-items: center;
+        height: 16px;
+      }
+      .toggle-checkbox:checked {
+        right: 0;
+        border-color: #68d391;
+      }
+      .toggle-checkbox:checked + .toggle-label {
+        background-color: #68d391;
+      }
+      .toggle-checkbox {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+      }
+      .toggle-label {
+        width: 30px;
+        height: 16px;
+        background-color: #cbd5e1;
+        border-radius: 9999px;
+        position: relative;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in;
+        display: block;
+      }
+      .toggle-label:after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        background-color: white;
+        border-radius: 50%;
+        transition: transform 0.2s;
+      }
+      .toggle-checkbox:checked + .toggle-label:after {
+        transform: translateX(14px);
+      }
+
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+
+      th,
+      td {
+        white-space: nowrap;
+        vertical-align: top;
+      }
+      .sub-price {
+        font-size: 9px;
+        color: #94a3b8;
+        margin-top: 1px;
+        display: block;
+      }
+
+      .sort-btn {
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        opacity: 0.4;
+        background: #f1f5f9;
+        height: 24px;
+      }
+      .sort-btn:hover {
+        background: #e2e8f0;
+        opacity: 0.8;
+      }
+      .sort-btn.active {
+        opacity: 1;
+        background: #dbeafe;
+        color: #2563eb;
+        font-weight: bold;
+      }
+      .sort-icon {
+        font-size: 10px;
+        min-width: 12px;
+        text-align: center;
+      }
+
+      /* 拖拽样式 */
+      .draggable-card {
+        transition: all 0.2s;
+        position: relative;
+      }
+      .draggable-card.dragging {
+        opacity: 0.5;
+        transform: scale(0.95);
+      }
+      .draggable-card.drag-over {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+
+      /* 拖拽手柄 */
+      .drag-handle {
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: move;
+        padding: 8px 4px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 10;
+        user-select: none;
+      }
+      .draggable-card:hover .drag-handle {
+        opacity: 1;
+      }
+      .drag-handle:hover {
+        opacity: 1 !important;
+      }
+      .drag-handle-icon {
+        color: #94a3b8;
+        font-size: 16px;
+        line-height: 1;
+        letter-spacing: -3px;
+        display: block;
+      }
+      .drag-handle:hover .drag-handle-icon {
+        color: #6366f1;
+      }
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+
+      /* 表头拖拽样式 */
+      .draggable-header {
+        cursor: grab;
+        user-select: none;
+      }
+      .draggable-header:active {
+        cursor: grabbing;
+      }
+      .draggable-header.dragging {
+        opacity: 0.5;
+      }
+      .draggable-header.drag-over {
+        border-left: 3px solid #6366f1;
+      }
+
+      /* 表格行斑马纹效果 */
+      tbody tr:nth-child(even) {
+        background-color: #f1f5f9;
+      }
+      tbody tr:nth-child(odd) {
+        background-color: #f8fafc;
+      }
+      tbody tr:hover {
+        background-color: #e2e8f0 !important;
+      }
+
+      /* 所有单元格继承行背景色 */
+      tbody tr td {
+        border-bottom: 1px solid #e2e8f0;
+        background-color: inherit;
+      }
+
+      /* 固定列背景色 */
+      tbody tr:nth-child(even) td:first-child {
+        background-color: #f1f5f9;
+      }
+      tbody tr:nth-child(odd) td:first-child {
+        background-color: #f8fafc;
+      }
+      tbody tr:hover td:first-child {
+        background-color: #e2e8f0 !important;
+      }
+
+      /* 其他列背景色 */
+      tbody tr:nth-child(even) td:not(:first-child) {
+        background-color: #f1f5f9;
+      }
+      tbody tr:nth-child(odd) td:not(:first-child) {
+        background-color: #f8fafc;
+      }
+      tbody tr:hover td:not(:first-child) {
+        background-color: #e2e8f0 !important;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="app" v-cloak class="container mx-auto p-4 max-w-[1900px]">
-        
-        <header class="mb-4 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm sticky top-2 z-40">
-            <div>
-                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <span>💰 wn_os AI API 价格透视镜</span>
-                    <span class="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded font-mono">v8.0</span>
-                </h1>
+      <header
+        class="mb-4 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm sticky top-2 z-40"
+      >
+        <div>
+          <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <span>💰 wn_os AI API 价格透视镜</span>
+            <span
+              class="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded font-mono"
+              >v8.0</span
+            >
+            <span
+              class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded font-medium"
+              title="配置自动保存到浏览器本地存储"
+              >💾 自动保存</span
+            >
+          </h1>
+        </div>
+
+        <div class="flex flex-wrap gap-3 items-center h-[42px]">
+          <div class="flex flex-col gap-1 h-full justify-center">
+            <div class="segmented-control">
+              <button
+                @click="displayUnit = '1K'"
+                :class="{active: displayUnit === '1K'}"
+              >
+                1K
+              </button>
+              <button
+                @click="displayUnit = '1M'"
+                :class="{active: displayUnit === '1M'}"
+              >
+                1M
+              </button>
             </div>
-            
-            <div class="flex flex-wrap gap-3 items-center h-[42px]">
-                
-                <div class="flex flex-col gap-1 h-full justify-center">
-                    <div class="segmented-control">
-                        <button @click="displayUnit = '1K'" :class="{active: displayUnit === '1K'}">1K</button>
-                        <button @click="displayUnit = '1M'" :class="{active: displayUnit === '1M'}">1M</button>
-                    </div>
-                </div>
+          </div>
 
-                <div class="flex flex-col gap-1 h-full justify-center">
-                    <div class="segmented-control">
-                        <button @click="displayCurrency = 'RATIO'" :class="{active: displayCurrency === 'RATIO'}">
-                            <span>倍率</span>
-                        </button>
-                        <button @click="displayCurrency = 'USD'" :class="{active: displayCurrency === 'USD'}">
-                            <span class="text-[10px]">USD</span>
-                            <span class="text-[8px] opacity-70 scale-90 -mt-0.5">美元</span>
-                        </button>
-                        <button @click="displayCurrency = 'CNY'" :class="{active: displayCurrency === 'CNY'}">
-                            <span class="text-[10px]">CNY</span>
-                            <span class="text-[8px] opacity-70 scale-90 -mt-0.5">人民币</span>
-                        </button>
-                    </div>
-                </div>
+          <div class="flex flex-col gap-1 h-full justify-center">
+            <div class="segmented-control">
+              <button
+                @click="displayCurrency = 'RATIO'"
+                :class="{active: displayCurrency === 'RATIO'}"
+              >
+                <span>倍率</span>
+              </button>
+              <button
+                @click="displayCurrency = 'USD'"
+                :class="{active: displayCurrency === 'USD'}"
+              >
+                <span class="text-[10px]">USD</span>
+                <span class="text-[8px] opacity-70 scale-90 -mt-0.5">美元</span>
+              </button>
+              <button
+                @click="displayCurrency = 'CNY'"
+                :class="{active: displayCurrency === 'CNY'}"
+              >
+                <span class="text-[10px]">CNY</span>
+                <span class="text-[8px] opacity-70 scale-90 -mt-0.5"
+                  >人民币</span
+                >
+              </button>
+            </div>
+          </div>
 
-                <div class="w-px h-8 bg-slate-200 mx-1"></div>
+          <div class="w-px h-8 bg-slate-200 mx-1"></div>
 
-                <div class="flex flex-col gap-1 h-full justify-center">
-                    <div class="segmented-control min-w-[140px]">
-                        <button @click="allowGroupSwitch = false" :class="{active: !allowGroupSwitch}">
-                            <span>👁️ 仅查看</span>
-                        </button>
-                        <button @click="allowGroupSwitch = true" :class="{active: allowGroupSwitch, '!text-green-600': allowGroupSwitch}">
-                            <span>⚡ 点击切换</span>
-                        </button>
-                    </div>
-                </div>
+          <div class="flex flex-col gap-1 h-full justify-center">
+            <div class="segmented-control min-w-[140px]">
+              <button
+                @click="allowGroupSwitch = false"
+                :class="{active: !allowGroupSwitch}"
+              >
+                <span>👁️ 仅查看</span>
+              </button>
+              <button
+                @click="allowGroupSwitch = true"
+                :class="{active: allowGroupSwitch, '!text-green-600': allowGroupSwitch}"
+              >
+                <span>⚡ 点击切换</span>
+              </button>
+            </div>
+          </div>
 
-                <div class="w-px h-8 bg-slate-200 mx-1"></div>
+          <div class="w-px h-8 bg-slate-200 mx-1"></div>
 
-                <button @click="showRenameModal = true" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 rounded text-xs font-bold h-[42px] flex items-center gap-1 transition-colors" title="设置模型重命名映射">
-                    <span>⚙️ 映射</span>
-                    <span v-if="renameRules.length > 0" class="bg-indigo-100 text-indigo-600 px-1.5 rounded-full text-[9px]">{{ renameRules.length }}</span>
+          <button
+            @click="showRenameModal = true"
+            class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 rounded text-xs font-bold h-[42px] flex items-center gap-1 transition-colors"
+            title="设置模型重命名映射"
+          >
+            <span>⚙️ 映射</span>
+            <span
+              v-if="renameRules.length > 0"
+              class="bg-indigo-100 text-indigo-600 px-1.5 rounded-full text-[9px]"
+              >{{ renameRules.length }}</span
+            >
+          </button>
+
+          <div
+            class="flex items-center px-3 bg-slate-50 rounded border border-slate-200 h-full"
+          >
+            <label class="text-xs font-bold text-slate-500 mr-2"
+              >USDCNY汇率:</label
+            >
+            <input
+              type="number"
+              v-model.number="globalExchangeRate"
+              class="w-14 bg-transparent font-mono font-bold text-blue-600 outline-none text-right"
+              step="0.01"
+            />
+          </div>
+
+          <button
+            @click="fetchOfficialData"
+            :disabled="loading"
+            class="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded text-sm flex items-center gap-2 h-full transition-colors"
+          >
+            <span v-if="loading" class="animate-spin">⟳</span>
+            {{ hasOfficial ? '刷新' : '加载基准' }}
+          </button>
+
+          <button
+            @click="exportConfigToFile"
+            class="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-3 rounded text-xs font-bold h-full transition-colors"
+            title="导出配置到JSON文件"
+          >
+            📥 导出配置
+          </button>
+
+          <button
+            @click="triggerImportFile"
+            class="bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 px-3 rounded text-xs font-bold h-full transition-colors"
+            title="从JSON文件导入配置"
+          >
+            📤 导入配置
+          </button>
+          <input
+            type="file"
+            ref="fileInput"
+            @change="importConfigFromFile"
+            accept=".json"
+            style="display: none"
+          />
+
+          <button
+            @click="clearLocalStorage"
+            class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 rounded text-xs font-bold h-full transition-colors"
+            title="清除所有保存的配置"
+          >
+            🗑️ 清除缓存
+          </button>
+        </div>
+      </header>
+
+      <div class="card p-3 mb-4 shadow-sm">
+        <div
+          class="flex flex-col md:flex-row gap-4 items-center justify-between"
+        >
+          <div class="w-full md:w-1/3 relative">
+            <span class="absolute left-3 top-2 text-slate-400 text-xs">🔍</span>
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="搜索模型..."
+              class="w-full pl-8 pr-2 py-1.5 text-sm border border-slate-300 rounded focus:border-indigo-500 outline-none"
+            />
+          </div>
+          <div class="flex bg-slate-100 p-1 rounded text-xs font-bold">
+            <button
+              v-for="m in ['nonofficial', 'intersection', 'all']"
+              @click="filterMode = m"
+              class="px-3 py-1.5 rounded transition-all capitalize"
+              :class="filterMode === m ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+            >
+              {{ m === 'nonofficial' ? '第三方优先' : (m === 'intersection' ?
+              '仅看公共' : '显示所有') }}
+            </button>
+          </div>
+          <button
+            @click="addSource"
+            class="text-indigo-600 text-xs font-bold hover:underline"
+          >
+            + 添加渠道
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-6" v-show="showInputs">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div
+            v-for="(source, index) in sources"
+            :key="source.id"
+            class="card p-3 relative border-t-4 flex flex-col gap-2 draggable-card"
+            :class="[
+              source.isOfficial ? 'border-green-500 bg-green-50/30' : 'border-indigo-500',
+              draggingCardIndex === index ? 'dragging' : '',
+              dragOverCardIndex === index ? 'drag-over' : ''
+            ]"
+            @dragover.prevent="handleCardDragOver(index, $event)"
+            @drop="handleCardDrop(index)"
+          >
+            <!-- 拖拽手柄 -->
+            <div
+              class="drag-handle"
+              draggable="true"
+              @dragstart="handleCardDragStart(index, $event)"
+              @dragend="handleCardDragEnd"
+              title="拖动排序"
+            >
+              <span class="drag-handle-icon">⋮⋮</span>
+            </div>
+
+            <!-- 删除按钮 -->
+            <div
+              v-if="!source.isOfficial"
+              @click="removeSource(index)"
+              class="absolute top-2 right-2 cursor-pointer text-slate-300 hover:text-red-500 z-10 p-1"
+            >
+              ✕
+            </div>
+            <div class="flex items-center justify-between pr-8 gap-2">
+              <input
+                type="text"
+                v-model="source.name"
+                class="bg-transparent font-bold text-sm text-slate-700 outline-none border-b border-transparent hover:border-slate-300 focus:border-indigo-500 flex-shrink min-w-0"
+                :disabled="source.isOfficial"
+                style="max-width: 120px"
+              />
+
+              <!-- 套餐选择和管理 -->
+              <div
+                v-if="!source.isOfficial"
+                class="flex items-center gap-1 flex-shrink-0"
+              >
+                <select
+                  v-model="source.selectedPackage"
+                  @change="updateSourceExchangeRate(source)"
+                  class="text-[10px] border border-slate-300 rounded bg-white py-1 px-2 outline-none font-medium text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer"
+                >
+                  <option
+                    v-for="pkg in source.packages"
+                    :key="pkg.id"
+                    :value="pkg.id"
+                  >
+                    {{ pkg.name }} ({{ pkg.rate }})
+                  </option>
+                </select>
+                <button
+                  @click="openPackageModal(source)"
+                  class="text-indigo-600 hover:text-indigo-800 text-xs font-bold px-1.5 py-0.5 rounded border border-indigo-200 hover:bg-indigo-50 transition-colors"
+                  title="管理充值套餐"
+                >
+                  ⚙️
                 </button>
+              </div>
 
-                <div class="flex items-center px-3 bg-slate-50 rounded border border-slate-200 h-full">
-                    <label class="text-xs font-bold text-slate-500 mr-2">基准汇率:</label>
-                    <input type="number" v-model.number="globalExchangeRate" class="w-14 bg-transparent font-mono font-bold text-blue-600 outline-none text-right" step="0.01">
-                </div>
-                
-                <button @click="fetchOfficialData" :disabled="loading" class="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded text-sm flex items-center gap-2 h-full transition-colors">
-                    <span v-if="loading" class="animate-spin">⟳</span>
-                    {{ hasOfficial ? '刷新' : '加载基准' }}
-                </button>
+              <!-- 基准汇率输入（官方渠道） -->
+              <div
+                v-else
+                class="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200 flex-shrink-0"
+              >
+                <span class="text-[10px] text-slate-500">基准汇率:</span>
+                <input
+                  type="number"
+                  v-model.number="source.exchangeRate"
+                  class="w-12 text-[10px] font-bold text-right outline-none bg-transparent"
+                  step="0.1"
+                  :disabled="source.isOfficial"
+                />
+              </div>
             </div>
-        </header>
+            <textarea
+              v-model="source.rawJson"
+              @input="parseSource(source)"
+              placeholder="JSON..."
+              class="w-full h-16 p-2 text-[10px] border border-slate-200 rounded resize-none font-mono outline-none"
+              :class="{'bg-slate-50': source.isOfficial}"
+              :disabled="source.isOfficial"
+            ></textarea>
 
-        <div class="card p-3 mb-4 shadow-sm">
-            <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div class="w-full md:w-1/3 relative">
-                    <span class="absolute left-3 top-2 text-slate-400 text-xs">🔍</span>
-                    <input type="text" v-model="searchQuery" placeholder="搜索模型..." class="w-full pl-8 pr-2 py-1.5 text-sm border border-slate-300 rounded focus:border-indigo-500 outline-none">
+            <div
+              class="flex items-center h-8 gap-2 mt-1 border-t border-slate-100 pt-2"
+            >
+              <div class="text-[10px] w-16 shrink-0 whitespace-nowrap">
+                <span
+                  v-if="source.parsedData.valid"
+                  class="text-green-600 font-bold"
+                  title="总模型数 (当前分组可用数)"
+                >
+                  ✓ {{ source.parsedData.count }}
+                  <span class="text-green-600/70 font-normal"
+                    >({{ getCurrentGroupCount(source) }})</span
+                  >
+                </span>
+              </div>
+              <div
+                v-if="!source.isOfficial && source.parsedData.valid"
+                class="flex-1 min-w-0 flex justify-center"
+              >
+                <select
+                  v-model="source.selectedGroup"
+                  class="text-[11px] border border-slate-300 rounded bg-white py-1 px-2 outline-none w-full max-w-[180px] font-medium text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer"
+                >
+                  <option
+                    v-for="(label, key) in source.parsedData.groups"
+                    :value="key"
+                  >
+                    {{ label }}
+                  </option>
+                </select>
+              </div>
+              <div v-else class="flex-1"></div>
+              <div
+                v-if="!source.isOfficial"
+                class="flex items-center gap-1 shrink-0"
+              >
+                <span class="text-[9px] text-slate-400">全部</span>
+                <div class="toggle-wrapper">
+                  <div
+                    class="relative inline-block w-[30px] align-middle select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      :id="'toggle-'+source.id"
+                      class="toggle-checkbox"
+                      v-model="source.showAllModels"
+                    />
+                    <label
+                      :for="'toggle-'+source.id"
+                      class="toggle-label"
+                    ></label>
+                  </div>
                 </div>
-                <div class="flex bg-slate-100 p-1 rounded text-xs font-bold">
-                    <button v-for="m in ['nonofficial', 'intersection', 'all']" @click="filterMode = m" class="px-3 py-1.5 rounded transition-all capitalize" :class="filterMode === m ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">{{ m === 'nonofficial' ? '第三方优先' : (m === 'intersection' ? '仅看公共' : '显示所有') }}</button>
-                </div>
-                <button @click="addSource" class="text-indigo-600 text-xs font-bold hover:underline">+ 添加渠道</button>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
+      <div class="text-center mb-2">
+        <button
+          @click="showInputs = !showInputs"
+          class="text-xs text-slate-400 hover:text-indigo-500"
+        >
+          {{ showInputs ? '▲ 收起配置' : '▼ 展开配置' }}
+        </button>
+      </div>
 
-        <div class="mb-6" v-show="showInputs">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div v-for="(source, index) in sources" :key="source.id" class="card p-3 relative border-t-4 flex flex-col gap-2" :class="source.isOfficial ? 'border-green-500 bg-green-50/30' : 'border-indigo-500'">
-                    <div v-if="!source.isOfficial" @click="removeSource(index)" class="absolute top-2 right-2 cursor-pointer text-slate-300 hover:text-red-500 z-10 p-1">✕</div>
-                    <div class="flex items-center justify-between pr-8">
-                        <input type="text" v-model="source.name" class="bg-transparent font-bold text-sm text-slate-700 w-1/2 outline-none border-b border-transparent hover:border-slate-300 focus:border-indigo-500" :disabled="source.isOfficial">
-                        <div class="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200">
-                            <span class="text-[10px] text-slate-500">充值汇率:</span>
-                            <input type="number" v-model.number="source.exchangeRate" class="w-12 text-[10px] font-bold text-right outline-none bg-transparent" step="0.1" :disabled="source.isOfficial">
-                        </div>
+      <div
+        class="card overflow-hidden min-h-[300px] pb-4"
+        v-if="validSourceCount > 0"
+      >
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr
+                class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200"
+              >
+                <th
+                  class="p-3 font-bold sticky left-0 bg-slate-100 z-20 w-64 border-r border-slate-200"
+                >
+                  <div class="flex items-center justify-between">
+                    <span>模型 ({{ displayUnit }})</span>
+                    <div
+                      class="sort-btn"
+                      :class="{active: sortState.column === 'baseName'}"
+                      @click="toggleSort('baseName')"
+                    >
+                      <span class="sort-label"
+                        >{{ getSortLabel('baseName') }}</span
+                      >
+                      <span
+                        class="sort-icon"
+                        v-if="sortState.column === 'baseName' && sortState.order === 'asc'"
+                        >↓</span
+                      >
+                      <span
+                        class="sort-icon"
+                        v-else-if="sortState.column === 'baseName' && sortState.order === 'desc'"
+                        >↑</span
+                      >
+                      <span class="sort-icon" v-else>↕</span>
                     </div>
-                    <textarea v-model="source.rawJson" @input="parseSource(source)" placeholder='JSON...' class="w-full h-16 p-2 text-[10px] border border-slate-200 rounded resize-none font-mono outline-none" :class="{'bg-slate-50': source.isOfficial}" :disabled="source.isOfficial"></textarea>
-                    
-                    <div class="flex items-center h-8 gap-2 mt-1 border-t border-slate-100 pt-2">
-                        <div class="text-[10px] w-16 shrink-0 whitespace-nowrap">
-                            <span v-if="source.parsedData.valid" class="text-green-600 font-bold" title="总模型数 (当前分组可用数)">
-                                ✓ {{ source.parsedData.count }} 
-                                <span class="text-green-600/70 font-normal">({{ getCurrentGroupCount(source) }})</span>
-                            </span>
-                        </div>
-                        <div v-if="!source.isOfficial && source.parsedData.valid" class="flex-1 min-w-0 flex justify-center">
-                            <select v-model="source.selectedGroup" class="text-[11px] border border-slate-300 rounded bg-white py-1 px-2 outline-none w-full max-w-[180px] font-medium text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer">
-                                <option v-for="(label, key) in source.parsedData.groups" :value="key">{{ label }}</option>
-                            </select>
-                        </div>
-                        <div v-else class="flex-1"></div>
-                        <div v-if="!source.isOfficial" class="flex items-center gap-1 shrink-0">
-                            <span class="text-[9px] text-slate-400">全部</span>
-                            <div class="toggle-wrapper">
-                                <div class="relative inline-block w-[30px] align-middle select-none">
-                                    <input type="checkbox" :id="'toggle-'+source.id" class="toggle-checkbox" v-model="source.showAllModels"/>
-                                    <label :for="'toggle-'+source.id" class="toggle-label"></label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="text-center mb-2"><button @click="showInputs = !showInputs" class="text-xs text-slate-400 hover:text-indigo-500">{{ showInputs ? '▲ 收起配置' : '▼ 展开配置' }}</button></div>
-
-        <div class="card overflow-hidden min-h-[300px] pb-4" v-if="validSourceCount > 0">
-            <div class="overflow-x-auto"> 
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200">
-                            <th class="p-3 font-bold sticky left-0 bg-slate-100 z-20 w-64 border-r border-slate-200">
-                                <div class="flex items-center justify-between">
-                                    <span>模型 ({{ displayUnit }})</span>
-                                    <div class="sort-btn" :class="{active: sortState.column === 'baseName'}" @click="toggleSort('baseName')">
-                                        <span class="sort-label">{{ getSortLabel('baseName') }}</span>
-                                        <span class="sort-icon" v-if="sortState.column === 'baseName' && sortState.order === 'asc'">↓</span>
-                                        <span class="sort-icon" v-else-if="sortState.column === 'baseName' && sortState.order === 'desc'">↑</span>
-                                        <span class="sort-icon" v-else>↕</span>
-                                    </div>
-                                </div>
-                            </th>
-                            <th v-for="source in validSources" :key="source.id" class="p-2 text-center min-w-[180px] border-r border-slate-200" :class="{'bg-green-50/50': source.isOfficial}">
-                                <div class="flex items-center justify-center gap-2 relative">
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-slate-800">{{ source.name }}</span>
-                                        <div v-if="!source.isOfficial" class="flex justify-center gap-2 mt-1">
-                                            <span class="text-[10px] bg-white px-1 rounded border border-slate-200 text-slate-500 truncate max-w-[100px]">{{ source.parsedData.groups[source.selectedGroup] || source.selectedGroup }}</span>
-                                            <span v-if="getEffectiveRate(source) !== 1 && displayCurrency !== 'RATIO'" class="text-[10px] bg-orange-50 text-orange-600 px-1 rounded border border-orange-100">
-                                                {{ (getEffectiveRate(source)*100).toFixed(0) }}%成本
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="sort-btn absolute right-1 top-2" :class="{active: sortState.column === source.id}" @click="toggleSort(source.id)">
-                                        <span class="sort-icon" v-if="sortState.column === source.id && sortState.order === 'asc'">↑</span>
-                                        <span class="sort-icon" v-else-if="sortState.column === source.id && sortState.order === 'desc'">↓</span>
-                                        <span class="sort-icon" v-else>↕</span>
-                                    </div>
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm divide-y divide-slate-100">
-                        <tr v-for="row in tableRows" :key="row.baseName" class="hover:bg-slate-50 group">
-                            <td class="p-3 border-r border-slate-200 font-mono text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50 z-20 text-xs border-b border-slate-100 shadow-sm">
-                                <div class="font-bold">{{ row.baseName }}</div>
-                                <div v-if="row.officialBase > 0" class="text-[10px] text-green-600 mt-1">
-                                    <div v-if="row.quotaType === 1">
-                                        {{ formatPrice(calculateFinalPrice(row.officialBase, 1, 1, 1), 1) }}/次
-                                    </div>
-                                    <div v-else>
-                                        <span class="block">In: {{ formatPrice(calculateFinalPrice(row.officialBase, 1, 1, 0), 0) }}</span>
-                                        <span class="block text-green-600/70">Out: {{ formatPrice(calculateFinalPrice(row.officialBase * row.completionRatio, 1, 1, 0), 0) }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td v-for="source in validSources" :key="source.id" class="p-2 border-r border-slate-100 bg-white group-hover:bg-slate-50">
-                                <div v-if="row.variants[source.id] && row.variants[source.id].length > 0">
-                                    <div v-for="(item, vIdx) in row.variants[source.id]" :key="vIdx" class="variant-item flex flex-col items-center">
-                                        <div class="flex items-center gap-1 relative">
-                                            <div v-if="item.isAvailableInCurrentGroup" class="flex flex-col items-center">
-                                                <span class="font-mono font-bold text-sm" :class="{'text-green-600': item.isCheapest && item.quotaType !== 1, 'text-slate-700': !item.isCheapest || item.quotaType === 1}">
-                                                    {{ formatPrice(item.displayPrice, item.quotaType) }}<span v-if="item.quotaType === 1" class="text-[10px] text-slate-400 font-normal">/次</span>
-                                                </span>
-                                                <span v-if="item.quotaType !== 1" class="sub-price">
-                                                    Out: {{ formatPrice(item.displayOutputPrice, 0) }}
-                                                </span>
-                                            </div>
-                                            <div v-else class="text-slate-300 font-bold text-sm">-</div>
-                                            
-                                            <button v-if="!source.isOfficial && item.canSwitchGroup" 
-                                                    @click.stop="openGlobalPopover(item, source, $event)"
-                                                    class="text-[10px] transition-colors cursor-pointer px-1 font-bold ml-1" 
-                                                    :class="item.isAvailableInCurrentGroup ? 'text-slate-300 hover:text-indigo-600' : 'text-indigo-600 animate-pulse'"
-                                                    title="查看/切换分组">☰</button>
-                                            
-                                            <span v-if="item.isAvailableInCurrentGroup && !source.isOfficial && row.officialBase > 0 && displayCurrency !== 'RATIO' && item.quotaType !== 1" 
-                                                  class="badge-discount" 
-                                                  :class="getDiscountClass(item.displayPrice, calculateFinalPrice(row.officialBase, 1, 1, 0))">
-                                                  {{ getDiscountText(item.displayPrice, calculateFinalPrice(row.officialBase, 1, 1, 0)) }}
-                                            </span>
-                                        </div>
-                                        <div class="flex gap-1 mt-1 flex-wrap justify-center">
-                                            <span v-if="item.diff" class="badge-diff" :title="item.originalName">{{ item.diff }}</span>
-                                            <span v-if="item.isRenamed" class="badge-diff bg-yellow-50 text-yellow-600 border-yellow-100" title="原始名称">
-                                                {{ item.originalName }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="text-center text-slate-200 py-2">-</div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-             <div v-if="tableRows.length === 0" class="p-12 text-center text-slate-400 text-sm">暂无数据</div>
-        </div>
-
-        <div class="global-popover price-popover" :class="[popover.show ? 'active' : '', `popover-pos-${popover.pos}`]" 
-             :style="{ top: popover.y + 'px', left: popover.x + 'px' }" @click.stop>
-            <div class="popover-arrow"></div>
-            <div class="text-[11px] text-slate-500 mb-2 px-2 border-b border-slate-100 pb-2 flex justify-between items-center font-bold bg-white rounded-t">
-                <span>{{ displayCurrency }} / {{ displayUnit }}</span>
-                <span v-if="allowGroupSwitch" class="text-green-600 bg-green-50 px-1.5 py-0.5 rounded text-[10px]">点击切换</span>
-            </div>
-            <div class="max-h-[240px] overflow-y-auto no-scrollbar">
-                <div v-for="grp in popover.data?.groupPrices" :key="grp.key" 
-                     class="group-item"
-                     :class="{'active': grp.key === popover.source?.selectedGroup, 'clickable': allowGroupSwitch}"
-                     @click="handleGlobalGroupClick(grp.key)">
-                    <span class="mr-4 text-slate-700 truncate max-w-[120px]" :title="popover.source?.parsedData.groups[grp.key]">
-                        {{ popover.source?.parsedData.groups[grp.key] || grp.key }}
-                    </span>
-                    <div class="flex flex-col items-end shrink-0">
-                        <div class="flex items-center">
-                            <span class="font-mono font-bold" :class="(calculateDisplayPrice(grp.rawBase, popover.source, popover.data.quotaType) < popover.data?.displayPrice && popover.data.quotaType!==1) ? 'text-green-600' : 'text-slate-600'">
-                                {{ formatPrice(calculateDisplayPrice(grp.rawBase, popover.source, popover.data.quotaType), popover.data.quotaType) }}
-                            </span>
-                            <span v-if="grp.key === popover.source?.selectedGroup" class="ml-2 text-indigo-500 text-lg leading-none">•</span>
-                        </div>
-                        <span v-if="popover.data.quotaType !== 1" class="text-[9px] text-slate-400">
-                            Out: {{ formatPrice(calculateDisplayPrice(grp.rawBase * popover.data.completionRatio, popover.source, 0), 0) }}
+                  </div>
+                </th>
+                <th
+                  v-for="(source, sourceIndex) in validSources"
+                  :key="source.id"
+                  class="p-2 text-center min-w-[180px] border-r border-slate-200 draggable-header"
+                  :class="[
+                    {'bg-green-50/50': source.isOfficial},
+                    draggingHeaderIndex === sourceIndex ? 'dragging' : '',
+                    dragOverHeaderIndex === sourceIndex ? 'drag-over' : ''
+                  ]"
+                  draggable="true"
+                  @dragstart="handleHeaderDragStart(sourceIndex, $event)"
+                  @dragend="handleHeaderDragEnd"
+                  @dragover.prevent="handleHeaderDragOver(sourceIndex, $event)"
+                  @drop="handleHeaderDrop(sourceIndex)"
+                >
+                  <div class="flex items-center justify-center gap-2 relative">
+                    <div class="flex flex-col">
+                      <span class="font-bold text-slate-800"
+                        >{{ source.name }}</span
+                      >
+                      <div
+                        v-if="!source.isOfficial"
+                        class="flex justify-center gap-2 mt-1"
+                      >
+                        <span
+                          class="text-[10px] bg-white px-1 rounded border border-slate-200 text-slate-500 truncate max-w-[100px]"
+                          >{{ source.parsedData.groups[source.selectedGroup] ||
+                          source.selectedGroup }}</span
+                        >
+                        <span
+                          v-if="getEffectiveRate(source) !== 1 && displayCurrency !== 'RATIO'"
+                          class="text-[10px] bg-orange-50 text-orange-600 px-1 rounded border border-orange-100"
+                        >
+                          {{ (getEffectiveRate(source)*100).toFixed(0) }}%成本
                         </span>
+                      </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                    <div
+                      class="sort-btn absolute right-1 top-2"
+                      :class="{active: sortState.column === source.id}"
+                      @click="toggleSort(source.id)"
+                    >
+                      <span
+                        class="sort-icon"
+                        v-if="sortState.column === source.id && sortState.order === 'asc'"
+                        >↑</span
+                      >
+                      <span
+                        class="sort-icon"
+                        v-else-if="sortState.column === source.id && sortState.order === 'desc'"
+                        >↓</span
+                      >
+                      <span class="sort-icon" v-else>↕</span>
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="text-sm divide-y divide-slate-100">
+              <tr
+                v-for="row in tableRows"
+                :key="row.baseName"
+                class="group transition-colors"
+              >
+                <td
+                  class="p-3 border-r border-slate-200 font-mono text-slate-700 sticky left-0 z-20 text-xs border-b border-slate-100 shadow-sm"
+                >
+                  <div class="font-bold">{{ row.baseName }}</div>
+                  <div
+                    v-if="row.officialBase > 0"
+                    class="text-[10px] text-green-600 mt-1"
+                  >
+                    <div v-if="row.quotaType === 1">
+                      {{ formatPrice(calculateFinalPrice(row.officialBase, 1, 1,
+                      1), 1) }}/次
+                    </div>
+                    <div v-else>
+                      <span class="block"
+                        >In: {{
+                        formatPrice(calculateFinalPrice(row.officialBase, 1, 1,
+                        0), 0) }}</span
+                      >
+                      <span class="block text-green-600/70"
+                        >Out: {{
+                        formatPrice(calculateFinalPrice(row.officialBase *
+                        row.completionRatio, 1, 1, 0), 0) }}</span
+                      >
+                    </div>
+                  </div>
+                </td>
+                <td
+                  v-for="source in validSources"
+                  :key="source.id"
+                  class="p-2 border-r border-slate-100"
+                >
+                  <div
+                    v-if="row.variants[source.id] && row.variants[source.id].length > 0"
+                  >
+                    <div
+                      v-for="(item, vIdx) in row.variants[source.id]"
+                      :key="vIdx"
+                      class="variant-item flex flex-col items-center"
+                    >
+                      <div class="flex items-center gap-1 relative">
+                        <div
+                          v-if="item.isAvailableInCurrentGroup"
+                          class="flex flex-col items-center"
+                        >
+                          <span
+                            class="font-mono font-bold text-sm"
+                            :class="{'text-green-600': item.isCheapest && item.quotaType !== 1, 'text-slate-700': !item.isCheapest || item.quotaType === 1}"
+                          >
+                            {{ formatPrice(item.displayPrice, item.quotaType)
+                            }}<span
+                              v-if="item.quotaType === 1"
+                              class="text-[10px] text-slate-400 font-normal"
+                              >/次</span
+                            >
+                          </span>
+                          <span v-if="item.quotaType !== 1" class="sub-price">
+                            Out: {{ formatPrice(item.displayOutputPrice, 0) }}
+                          </span>
+                        </div>
+                        <div v-else class="text-slate-300 font-bold text-sm">
+                          -
+                        </div>
 
-        <div v-if="showRenameModal" class="rename-overlay" @click="showRenameModal = false"></div>
-        <div v-if="showRenameModal" class="global-popover rename-modal active">
-            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h3 class="font-bold text-slate-700">模型重命名映射</h3>
-                <button @click="showRenameModal = false" class="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <div class="max-h-[400px] overflow-y-auto pr-1">
-                <div v-for="(rule, index) in renameRules" :key="index" class="flex items-center gap-2 mb-2">
-                    <input type="text" v-model="rule.from" placeholder="原模型名 (如 gpt-4-svip)" class="flex-1 text-xs p-2 border rounded outline-none focus:border-indigo-500">
-                    <span class="text-slate-400">→</span>
-                    <input type="text" v-model="rule.to" placeholder="目标名 (如 gpt-4)" class="flex-1 text-xs p-2 border rounded outline-none focus:border-indigo-500">
-                    <button @click="removeRenameRule(index)" class="text-red-400 hover:text-red-600 px-1">✕</button>
-                </div>
-                <button @click="addRenameRule" class="w-full py-2 mt-2 border-2 border-dashed border-slate-200 text-slate-400 rounded text-xs hover:border-indigo-300 hover:text-indigo-500 font-bold transition-colors">+ 添加规则</button>
-            </div>
-            <p class="text-[10px] text-slate-400 mt-3 bg-slate-50 p-2 rounded">
-                💡 映射后的模型将被归纳到“目标名”所在行进行比价。原名会作为标签显示。
-            </p>
-        </div>
+                        <button
+                          v-if="!source.isOfficial && item.canSwitchGroup"
+                          @click.stop="openGlobalPopover(item, source, $event)"
+                          class="text-[10px] transition-colors cursor-pointer px-1 font-bold ml-1"
+                          :class="item.isAvailableInCurrentGroup ? 'text-slate-300 hover:text-indigo-600' : 'text-indigo-600 animate-pulse'"
+                          title="查看/切换分组"
+                        >
+                          ☰
+                        </button>
 
+                        <span
+                          v-if="item.isAvailableInCurrentGroup && !source.isOfficial && row.officialBase > 0 && displayCurrency !== 'RATIO' && item.quotaType !== 1"
+                          class="badge-discount"
+                          :class="getDiscountClass(item.displayPrice, calculateFinalPrice(row.officialBase, 1, 1, 0))"
+                        >
+                          {{ getDiscountText(item.displayPrice,
+                          calculateFinalPrice(row.officialBase, 1, 1, 0)) }}
+                        </span>
+                      </div>
+                      <div class="flex gap-1 mt-1 flex-wrap justify-center">
+                        <span
+                          v-if="item.diff"
+                          class="badge-diff"
+                          :title="item.originalName"
+                          >{{ item.diff }}</span
+                        >
+                        <span
+                          v-if="item.isRenamed"
+                          class="badge-diff bg-yellow-50 text-yellow-600 border-yellow-100"
+                          title="原始名称"
+                        >
+                          {{ item.originalName }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="text-center text-slate-200 py-2">-</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div
+          v-if="tableRows.length === 0"
+          class="p-12 text-center text-slate-400 text-sm"
+        >
+          暂无数据
+        </div>
+      </div>
+
+      <div
+        class="global-popover price-popover"
+        :class="[popover.show ? 'active' : '', `popover-pos-${popover.pos}`]"
+        :style="{ top: popover.y + 'px', left: popover.x + 'px' }"
+        @click.stop
+      >
+        <div class="popover-arrow"></div>
+        <div
+          class="text-[11px] text-slate-500 mb-2 px-2 border-b border-slate-100 pb-2 flex justify-between items-center font-bold bg-white rounded-t"
+        >
+          <span>{{ displayCurrency }} / {{ displayUnit }}</span>
+          <span
+            v-if="allowGroupSwitch"
+            class="text-green-600 bg-green-50 px-1.5 py-0.5 rounded text-[10px]"
+            >点击切换</span
+          >
+        </div>
+        <div class="max-h-[240px] overflow-y-auto no-scrollbar">
+          <div
+            v-for="grp in popover.data?.groupPrices"
+            :key="grp.key"
+            class="group-item"
+            :class="{'active': grp.key === popover.source?.selectedGroup, 'clickable': allowGroupSwitch}"
+            @click="handleGlobalGroupClick(grp.key)"
+          >
+            <span
+              class="mr-4 text-slate-700 truncate max-w-[120px]"
+              :title="popover.source?.parsedData.groups[grp.key]"
+            >
+              {{ popover.source?.parsedData.groups[grp.key] || grp.key }}
+            </span>
+            <div class="flex flex-col items-end shrink-0">
+              <div class="flex items-center">
+                <span
+                  class="font-mono font-bold"
+                  :class="(calculateDisplayPrice(grp.rawBase, popover.source, popover.data.quotaType) < popover.data?.displayPrice && popover.data.quotaType!==1) ? 'text-green-600' : 'text-slate-600'"
+                >
+                  {{ formatPrice(calculateDisplayPrice(grp.rawBase,
+                  popover.source, popover.data.quotaType),
+                  popover.data.quotaType) }}
+                </span>
+                <span
+                  v-if="grp.key === popover.source?.selectedGroup"
+                  class="ml-2 text-indigo-500 text-lg leading-none"
+                  >•</span
+                >
+              </div>
+              <span
+                v-if="popover.data.quotaType !== 1"
+                class="text-[9px] text-slate-400"
+              >
+                Out: {{ formatPrice(calculateDisplayPrice(grp.rawBase *
+                popover.data.completionRatio, popover.source, 0), 0) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="showRenameModal"
+        class="rename-overlay"
+        @click="showRenameModal = false"
+      ></div>
+      <div v-if="showRenameModal" class="global-popover rename-modal active">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+          <h3 class="font-bold text-slate-700">模型重命名映射</h3>
+          <button
+            @click="showRenameModal = false"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="max-h-[400px] overflow-y-auto pr-1">
+          <div
+            v-for="(rule, index) in renameRules"
+            :key="index"
+            class="flex items-center gap-2 mb-2"
+          >
+            <input
+              type="text"
+              v-model="rule.from"
+              placeholder="原模型名 (如 gpt-4-svip)"
+              class="flex-1 text-xs p-2 border rounded outline-none focus:border-indigo-500"
+            />
+            <span class="text-slate-400">→</span>
+            <input
+              type="text"
+              v-model="rule.to"
+              placeholder="目标名 (如 gpt-4)"
+              class="flex-1 text-xs p-2 border rounded outline-none focus:border-indigo-500"
+            />
+            <button
+              @click="removeRenameRule(index)"
+              class="text-red-400 hover:text-red-600 px-1"
+            >
+              ✕
+            </button>
+          </div>
+          <button
+            @click="addRenameRule"
+            class="w-full py-2 mt-2 border-2 border-dashed border-slate-200 text-slate-400 rounded text-xs hover:border-indigo-300 hover:text-indigo-500 font-bold transition-colors"
+          >
+            + 添加规则
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-3 bg-slate-50 p-2 rounded">
+          💡 映射后的模型将被归纳到"目标名"所在行进行比价。原名会作为标签显示。
+        </p>
+      </div>
+
+      <!-- 套餐管理弹窗 -->
+      <div
+        v-if="showPackageModal"
+        class="rename-overlay"
+        @click="showPackageModal = false"
+      ></div>
+      <div v-if="showPackageModal" class="global-popover rename-modal active">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+          <h3 class="font-bold text-slate-700">
+            充值套餐管理 - {{ currentEditSource?.name }}
+          </h3>
+          <button
+            @click="showPackageModal = false"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="max-h-[400px] overflow-y-auto pr-1">
+          <div
+            v-for="(pkg, index) in currentEditSource?.packages"
+            :key="pkg.id"
+            class="flex items-center gap-2 mb-2 p-2 rounded hover:bg-slate-50"
+          >
+            <input
+              type="text"
+              v-model="pkg.name"
+              placeholder="套餐名 (如 100元)"
+              class="flex-1 text-xs p-2 border rounded outline-none focus:border-indigo-500"
+            />
+            <div class="flex items-center gap-1">
+              <span class="text-xs text-slate-500 mr-1">汇率:</span>
+              <input
+                type="number"
+                v-model.number="pkg.rate"
+                placeholder="7.2"
+                class="w-20 text-xs p-2 border rounded outline-none focus:border-indigo-500 text-right"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <button
+              @click="removePackage(currentEditSource, index)"
+              class="text-red-400 hover:text-red-600 px-1"
+              :disabled="currentEditSource.packages.length <= 1"
+              :class="{'opacity-30 cursor-not-allowed': currentEditSource.packages.length <= 1}"
+            >
+              ✕
+            </button>
+          </div>
+          <button
+            @click="addPackage(currentEditSource)"
+            class="w-full py-2 mt-2 border-2 border-dashed border-slate-200 text-slate-400 rounded text-xs hover:border-indigo-300 hover:text-indigo-500 font-bold transition-colors"
+          >
+            + 添加套餐
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-3 bg-slate-50 p-2 rounded">
+          💡
+          直接输入该套餐的基准汇率值，切换套餐时会自动更新渠道的基准汇率。例如：套餐汇率7.2，切换后渠道基准汇率变为7.2
+        </p>
+      </div>
     </div>
 
     <script>
-        const { createApp, ref, computed, reactive, watch, onMounted, onUnmounted } = Vue;
+      const {
+        createApp,
+        ref,
+        computed,
+        reactive,
+        watch,
+        onMounted,
+        onUnmounted,
+      } = Vue;
 
-        createApp({
-            setup() {
-                const sources = ref([]);
-                const globalExchangeRate = ref(7.2);
-                const loading = ref(false);
-                const searchQuery = ref('');
-                const showInputs = ref(true);
-                const filterMode = ref('nonofficial');
-                const allowGroupSwitch = ref(false);
-                const displayCurrency = ref('RATIO'); 
-                const displayUnit = ref('1M');
-                const popover = reactive({ show: false, x: 0, y: 0, pos: 'top', data: null, source: null });
-                const sortState = reactive({ column: 'baseName', order: null }); // null (Default), 'asc', 'desc'
-                
-                // Feature 2: Rename Rules
-                const showRenameModal = ref(false);
-                const renameRules = ref([]); // Array of {from: '', to: ''}
-                
-                // Optimization 1: Default Sort Order (Official Index)
-                const officialOrderMap = ref(new Map());
+      createApp({
+        setup() {
+          const sources = ref([]);
+          const globalExchangeRate = ref(7.2);
+          const loading = ref(false);
+          const searchQuery = ref("");
+          const showInputs = ref(true);
+          const filterMode = ref("nonofficial");
+          const allowGroupSwitch = ref(false);
+          const displayCurrency = ref("RATIO");
+          const displayUnit = ref("1M");
+          const popover = reactive({
+            show: false,
+            x: 0,
+            y: 0,
+            pos: "top",
+            data: null,
+            source: null,
+          });
+          const sortState = reactive({ column: "baseName", order: null }); // null (Default), 'asc', 'desc'
 
-                const init = () => {
-                    sources.value = [{ id: 'custom_1', name: '我的渠道', rawJson: '', isOfficial: false, exchangeRate: 7.2, selectedGroup: 'default', showAllModels: true, parsedData: { valid: false, count: 0, models: [], groups: {}, groupRatios: {} } }];
-                };
+          // Feature 2: Rename Rules
+          const showRenameModal = ref(false);
+          const renameRules = ref([]); // Array of {from: '', to: ''}
 
-                const parseSource = (source) => {
-                    try {
-                        if (!source.rawJson) throw new Error("Empty");
-                        const obj = JSON.parse(source.rawJson);
-                        const rootData = obj.data || obj;
-                        let groupRatios = obj.group_ratio || (obj.data && obj.data.group_ratio) || { "default": 1 };
-                        let groupNames = obj.usable_group || {};
-                        let groups = {};
-                        Object.keys(groupRatios).forEach(k => { groups[k] = groupNames[k] ? `${k} (${groupNames[k]})` : k; });
+          // Feature 3: Package Management
+          const showPackageModal = ref(false);
+          const currentEditSource = ref(null);
 
-                        let models = [];
-                        const parseModelItem = (m, key) => ({
-                            name: m.model_name || key,
-                            ratio: typeof m.model_ratio === 'number' ? m.model_ratio : (typeof m === 'number' ? m : 0),
-                            price: typeof m.model_price === 'number' ? m.model_price : 0,
-                            completion_ratio: m.completion_ratio || 0,
-                            quota_type: m.quota_type || 0, 
-                            enable_groups: m.enable_groups || Object.keys(groupRatios) 
-                        });
+          // Feature 4: Drag and Drop for Cards
+          const draggingCardIndex = ref(null);
+          const dragOverCardIndex = ref(null);
 
-                        if (Array.isArray(rootData)) {
-                            models = rootData.map(m => parseModelItem(m));
-                        } else if (rootData && rootData.model_ratio) {
-                            const ratios = rootData.model_ratio;
-                            const completions = rootData.completion_ratio || {};
-                            models = Object.keys(ratios).map(k => parseModelItem({ model_ratio: ratios[k], completion_ratio: completions[k] }, k));
-                        }
-                        
-                        // Store official order for default sorting
-                        if (source.isOfficial) {
-                            officialOrderMap.value.clear();
-                            models.forEach((m, idx) => {
-                                officialOrderMap.value.set(m.name, idx);
-                            });
-                        }
+          // Feature 5: Drag and Drop for Table Headers
+          const draggingHeaderIndex = ref(null);
+          const dragOverHeaderIndex = ref(null);
 
-                        source.parsedData = { valid: models.length > 0, count: models.length, models, groups, groupRatios };
-                        if (!groupRatios[source.selectedGroup]) source.selectedGroup = Object.keys(groupRatios)[0] || 'default';
-                    } catch (e) { source.parsedData = { valid: false, models: [], groups: {}, groupRatios: {} }; }
-                };
+          // Optimization 1: Default Sort Order (Official Index)
+          const officialOrderMap = ref(new Map());
 
-                const fetchOfficialData = async () => {
-                    loading.value = true;
-                    try {
-                        sources.value = sources.value.filter(s => !s.isOfficial);
-                        const res = await fetch('https://basellm.github.io/llm-metadata/api/newapi/ratio_config-v1-base.json');
-                        const data = await res.json();
-                        const officialSource = { id: 'official', name: '官方基准', rawJson: JSON.stringify(data, null, 2), isOfficial: true, exchangeRate: globalExchangeRate.value, selectedGroup: 'default', showAllModels: true, parsedData: {} };
-                        parseSource(officialSource);
-                        sources.value.unshift(officialSource);
-                        showInputs.value = false;
-                    } catch(e) { alert("获取失败"); } 
-                    loading.value = false;
-                };
+          // LocalStorage Persistence
+          const STORAGE_KEY = "wn_os_price_config";
 
-                const getGroupRatio = (s) => s.isOfficial ? 1 : (s.parsedData.groupRatios[s.selectedGroup] || 1);
-                const getEffectiveRate = (s) => s.exchangeRate / globalExchangeRate.value;
-
-                const calculateFinalPrice = (baseValue, groupRatio, discountFactor, quotaType) => {
-                    let val = baseValue * groupRatio;
-                    if (displayCurrency.value === 'RATIO') return val;
-                    let priceInUSD = quotaType === 1 ? val : val * 2.0 * discountFactor;
-                    if (displayCurrency.value === 'CNY') val = priceInUSD * globalExchangeRate.value;
-                    else val = priceInUSD;
-                    if (quotaType !== 1 && displayUnit.value === '1K') val = val / 1000;
-                    return val;
-                };
-
-                const calculateDisplayPrice = (baseValue, source, quotaType) => {
-                    const gr = getGroupRatio(source);
-                    const factor = getEffectiveRate(source);
-                    return calculateFinalPrice(baseValue, gr, factor, quotaType);
-                };
-
-                const formatPrice = (n, quotaType) => {
-                    if (n === 0) return '0';
-                    let prefix = '';
-                    if (displayCurrency.value === 'CNY') prefix = '¥';
-                    else if (displayCurrency.value === 'USD') prefix = '$';
-                    else if (displayCurrency.value === 'RATIO') prefix = 'x';
-                    let numStr = n.toLocaleString('en-US', { maximumFractionDigits: 8, useGrouping: false });
-                    return prefix + numStr;
-                };
-
-                // Optimization 1: 3-state Toggle
-                const toggleSort = (col) => {
-                    if (sortState.column !== col) {
-                        sortState.column = col;
-                        sortState.order = 'asc';
-                    } else {
-                        if (sortState.order === 'asc') sortState.order = 'desc';
-                        else if (sortState.order === 'desc') sortState.order = null; // Reset to Default
-                        else sortState.order = 'asc';
-                    }
-                };
-
-                const getSortLabel = (col) => {
-                    if (sortState.column !== col || !sortState.order) return '默认';
-                    if (col === 'baseName') return sortState.order === 'asc' ? 'A→Z' : 'Z→A';
-                    return sortState.order === 'asc' ? '低→高' : '高→低';
-                };
-
-                const openGlobalPopover = (item, source, event) => {
-                    if (popover.show && popover.data === item) { popover.show = false; return; }
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    popover.data = item; popover.source = source;
-                    popover.pos = (window.innerHeight - rect.bottom < 220 && rect.top > 220) ? 'top' : 'bottom';
-                    popover.y = popover.pos === 'top' ? rect.top - 10 : rect.bottom + 10;
-                    popover.x = rect.left + rect.width / 2;
-                    popover.show = true;
-                };
-                const closeGlobalPopover = () => { popover.show = false; popover.data = null; };
-                const handleScroll = () => { if (popover.show) closeGlobalPopover(); };
-                const handleGlobalGroupClick = (groupKey) => {
-                    if (allowGroupSwitch.value && popover.source) {
-                        popover.source.selectedGroup = groupKey;
-                        closeGlobalPopover();
-                    }
-                };
-
-                const getCurrentGroupCount = (source) => {
-                    if (!source.parsedData || !source.parsedData.models) return 0;
-                    return source.parsedData.models.filter(m => (Array.isArray(m.enable_groups) ? m.enable_groups : Object.keys(source.parsedData.groupRatios)).includes(source.selectedGroup)).length;
-                };
-
-                // Feature 2: Rename Rules Logic
-                const addRenameRule = () => renameRules.value.push({from: '', to: ''});
-                const removeRenameRule = (idx) => renameRules.value.splice(idx, 1);
-                // Build quick lookup map
-                const renameMap = computed(() => {
-                    const map = {};
-                    renameRules.value.forEach(r => { if(r.from && r.to) map[r.from] = r.to; });
-                    return map;
-                });
-
-                onMounted(() => {
-                    init();
-                    window.addEventListener('click', closeGlobalPopover);
-                    window.addEventListener('scroll', handleScroll, true);
-                });
-                onUnmounted(() => {
-                    window.removeEventListener('click', closeGlobalPopover);
-                    window.removeEventListener('scroll', handleScroll, true);
-                });
-
-                const validSources = computed(() => sources.value.filter(s => s.parsedData.valid));
-                const validSourceCount = computed(() => validSources.value.length);
-                watch(globalExchangeRate, (val) => { sources.value.forEach(s => { if(s.isOfficial) s.exchangeRate = val; }); });
-
-                const tableRows = computed(() => {
-                    const rowMap = new Map();
-                    const officialSource = validSources.value.find(s => s.isOfficial);
-                    let baseNames = officialSource ? officialSource.parsedData.models.map(m => m.name).sort((a, b) => b.length - a.length) : [];
-
-                    validSources.value.forEach(source => {
-                        const allGroups = source.parsedData.groupRatios;
-                        source.parsedData.models.forEach(model => {
-                            const enabledGroups = Array.isArray(model.enable_groups) ? model.enable_groups : Object.keys(allGroups);
-                            const isAvailableInCurrentGroup = enabledGroups.includes(source.selectedGroup);
-                            if (!source.isOfficial && !source.showAllModels && !isAvailableInCurrentGroup) return; 
-
-                            // Feature 2: Apply Rename Logic
-                            let mappedName = renameMap.value[model.name] || model.name;
-                            let isRenamed = mappedName !== model.name;
-                            
-                            let baseName = mappedName;
-                            let diff = '';
-                            // Only try prefix matching if NOT explicitly renamed
-                            if (!isRenamed && baseNames.length > 0) {
-                                const match = baseNames.find(bn => model.name === bn) || baseNames.find(bn => model.name.includes(bn));
-                                if (match) { baseName = match; diff = model.name.replace(match, '').replace(/^[-/:.|]+|[-/:.|]+$/g, ''); }
-                            }
-
-                            let effectiveBase = (model.quota_type === 1 && model.price > 0) ? model.price : model.ratio;
-                            if (!rowMap.has(baseName)) rowMap.set(baseName, { baseName, variants: {}, officialBase: 0, completionRatio: model.completion_ratio, quotaType: model.quota_type });
-                            const row = rowMap.get(baseName);
-                            if (source.isOfficial && !diff && !isRenamed) { row.officialBase = effectiveBase; row.completionRatio = model.completion_ratio; row.quotaType = model.quota_type; }
-                            if (!row.variants[source.id]) row.variants[source.id] = [];
-
-                            const groupPrices = [];
-                            enabledGroups.forEach(gKey => { if (allGroups[gKey] !== undefined) groupPrices.push({ key: gKey, rawBase: effectiveBase * allGroups[gKey] }); });
-                            
-                            row.variants[source.id].push(reactive({
-                                originalName: model.name, diff, rawBase: effectiveBase, quotaType: model.quota_type,
-                                displayPrice: calculateDisplayPrice(effectiveBase, source, model.quota_type),
-                                displayOutputPrice: calculateDisplayPrice(effectiveBase * model.completionRatio, source, model.quota_type),
-                                completionRatio: model.completion_ratio, isCheapest: false, hasMultipleGroups: groupPrices.length > 0,
-                                canSwitchGroup: groupPrices.length > 0 && (!isAvailableInCurrentGroup || groupPrices.length > 1),
-                                isAvailableInCurrentGroup, groupPrices, isRenamed
-                            }));
-                        });
-                    });
-
-                    let rows = Array.from(rowMap.values());
-                    
-                    // Re-calc prices & cheapest
-                    rows.forEach(row => {
-                        validSources.value.forEach(s => {
-                            if (row.variants[s.id]) row.variants[s.id].forEach(v => {
-                                v.displayPrice = calculateDisplayPrice(v.rawBase, s, v.quotaType);
-                                v.displayOutputPrice = calculateDisplayPrice(v.rawBase * v.completionRatio, s, v.quotaType);
-                            });
-                        });
-                    });
-
-                    if (searchQuery.value) {
-                        const reg = new RegExp(searchQuery.value, 'i');
-                        rows = rows.filter(r => reg.test(r.baseName) || Object.values(r.variants).flat().some(v => reg.test(v.originalName)));
-                    }
-                    const nonOff = validSources.value.filter(s => !s.isOfficial);
-                    if (filterMode.value === 'nonofficial' && nonOff.length > 0) rows = rows.filter(r => nonOff.some(s => r.variants[s.id]?.length > 0));
-                    else if (filterMode.value === 'intersection') rows = rows.filter(r => validSources.value.every(s => r.variants[s.id]?.length > 0));
-
-                    rows.forEach(row => {
-                        let tokenPrices = []; let fixedPrices = [];
-                        validSources.value.forEach(s => row.variants[s.id]?.forEach(v => {
-                            if(v.isAvailableInCurrentGroup) { if (v.quotaType === 1) fixedPrices.push(v.displayPrice); else tokenPrices.push(v.displayPrice); }
-                        }));
-                        const minToken = tokenPrices.length ? Math.min(...tokenPrices) : Infinity;
-                        const minFixed = fixedPrices.length ? Math.min(...fixedPrices) : Infinity;
-                        validSources.value.forEach(s => row.variants[s.id]?.forEach(v => { 
-                            if(v.isAvailableInCurrentGroup) { if (v.quotaType === 1) v.isCheapest = Math.abs(v.displayPrice - minFixed) < 1e-9; else v.isCheapest = Math.abs(v.displayPrice - minToken) < 1e-9; } else v.isCheapest = false;
-                        }));
-                    });
-
-                    rows.sort((a, b) => {
-                        // 1. Availability
-                        const sId = sortState.column === 'baseName' ? null : sortState.column;
-                        const availA = sId ? (a.variants[sId] && a.variants[sId].some(x => x.isAvailableInCurrentGroup)) : true;
-                        const availB = sId ? (b.variants[sId] && b.variants[sId].some(x => x.isAvailableInCurrentGroup)) : true;
-                        if (availA !== availB) return availA ? -1 : 1;
-
-                        // 2. Quota Type
-                        const qA = a.quotaType ?? 0; const qB = b.quotaType ?? 0;
-                        if (qA !== qB) return qA - qB;
-
-                        // 3. Sort Logic
-                        if (sortState.column === 'baseName' || !sId) {
-                            if (!sortState.order) {
-                                // Default Sort: Official Order > Alphabetical
-                                const idxA = officialOrderMap.value.has(a.baseName) ? officialOrderMap.value.get(a.baseName) : 99999;
-                                const idxB = officialOrderMap.value.has(b.baseName) ? officialOrderMap.value.get(b.baseName) : 99999;
-                                if (idxA !== idxB) return idxA - idxB;
-                                return a.baseName.localeCompare(b.baseName);
-                            }
-                            // Name Sort (A-Z, Z-A)
-                            return sortState.order === 'asc' ? a.baseName.localeCompare(b.baseName) : b.baseName.localeCompare(a.baseName);
-                        } else {
-                            if (!availA) return a.baseName.localeCompare(b.baseName);
-                            const isAsc = sortState.order === 'asc';
-                            const getVal = (row) => {
-                                const vars = row.variants[sId].filter(x => x.isAvailableInCurrentGroup);
-                                const prices = vars.map(x => x.displayPrice);
-                                return isAsc ? Math.min(...prices) : Math.max(...prices);
-                            };
-                            const pA = getVal(a); const pB = getVal(b);
-                            if (!sortState.order) return a.baseName.localeCompare(b.baseName);
-                            return isAsc ? pA - pB : pB - pA;
-                        }
-                    });
-
-                    return rows;
-                });
-
-                const formatNum = (n) => parseFloat((n||0).toFixed(2));
-                const getDiscountClass = (m, o) => { if(!o) return ''; const p = m/o; return p<0.8?'good':(p>1.1?'bad':'normal'); };
-                const getDiscountText = (m, o) => o ? `${((m/o)*100).toFixed(0)}%` : '';
-
-                return {
-                    sources, globalExchangeRate, loading, searchQuery, showInputs, filterMode, allowGroupSwitch, popover,
-                    displayCurrency, displayUnit, sortState, showRenameModal, renameRules,
-                    hasOfficial: computed(() => sources.value.some(s => s.isOfficial)),
-                    fetchOfficialData, addSource: () => sources.value.push({ id: Date.now(), name: '新渠道', rawJson:'', isOfficial:false, exchangeRate:7.2, selectedGroup:'default', showAllModels: true, parsedData:{valid:false, groups:{}} }),
-                    removeSource: (i) => sources.value.splice(i, 1),
-                    parseSource, validSources, validSourceCount, getEffectiveRate,
-                    tableRows, formatPrice, formatNum, getDiscountClass, getDiscountText, calculateDisplayPrice, calculateFinalPrice,
-                    openGlobalPopover, handleGlobalGroupClick, toggleSort, getSortLabel, getCurrentGroupCount, addRenameRule, removeRenameRule
-                };
+          const saveToLocalStorage = () => {
+            try {
+              const data = {
+                sources: sources.value.map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  rawJson: s.rawJson,
+                  isOfficial: s.isOfficial,
+                  exchangeRate: s.exchangeRate,
+                  selectedGroup: s.selectedGroup,
+                  showAllModels: s.showAllModels,
+                  packages: s.packages,
+                  selectedPackage: s.selectedPackage,
+                })),
+                globalExchangeRate: globalExchangeRate.value,
+                displayCurrency: displayCurrency.value,
+                displayUnit: displayUnit.value,
+                filterMode: filterMode.value,
+                allowGroupSwitch: allowGroupSwitch.value,
+                showInputs: showInputs.value,
+                renameRules: renameRules.value,
+              };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+              console.error("保存配置失败:", e);
             }
-        }).mount('#app');
+          };
+
+          const loadFromLocalStorage = () => {
+            try {
+              const stored = localStorage.getItem(STORAGE_KEY);
+              if (stored) {
+                const data = JSON.parse(stored);
+
+                // 恢复渠道配置
+                if (data.sources && data.sources.length > 0) {
+                  sources.value = data.sources.map((s) => ({
+                    ...s,
+                    // 为旧配置添加默认packages
+                    packages: s.packages || [
+                      { id: "pkg_1", name: "标准充值", rate: 7.2 },
+                    ],
+                    selectedPackage:
+                      s.selectedPackage ||
+                      (s.packages && s.packages[0]?.id) ||
+                      "pkg_1",
+                    parsedData: {
+                      valid: false,
+                      count: 0,
+                      models: [],
+                      groups: {},
+                      groupRatios: {},
+                    },
+                  }));
+                  // 重新解析所有渠道
+                  sources.value.forEach((source) => {
+                    if (source.rawJson) parseSource(source);
+                    // 同步套餐汇率到渠道汇率
+                    if (
+                      !source.isOfficial &&
+                      source.packages &&
+                      source.selectedPackage
+                    ) {
+                      updateSourceExchangeRate(source);
+                    }
+                  });
+                }
+
+                // 恢复其他配置
+                if (data.globalExchangeRate)
+                  globalExchangeRate.value = data.globalExchangeRate;
+                if (data.displayCurrency)
+                  displayCurrency.value = data.displayCurrency;
+                if (data.displayUnit) displayUnit.value = data.displayUnit;
+                if (data.filterMode) filterMode.value = data.filterMode;
+                if (data.allowGroupSwitch !== undefined)
+                  allowGroupSwitch.value = data.allowGroupSwitch;
+                if (data.showInputs !== undefined)
+                  showInputs.value = data.showInputs;
+                if (data.renameRules) renameRules.value = data.renameRules;
+
+                return true;
+              }
+            } catch (e) {
+              console.error("加载配置失败:", e);
+            }
+            return false;
+          };
+
+          const init = () => {
+            // 尝试从localStorage恢复配置
+            const restored = loadFromLocalStorage();
+
+            // 如果没有保存的配置，使用默认值
+            if (!restored) {
+              sources.value = [
+                {
+                  id: "custom_1",
+                  name: "我的渠道",
+                  rawJson: "",
+                  isOfficial: false,
+                  exchangeRate: 7.2,
+                  selectedGroup: "default",
+                  showAllModels: true,
+                  packages: [{ id: "pkg_1", name: "标准充值", rate: 7.2 }],
+                  selectedPackage: "pkg_1",
+                  parsedData: {
+                    valid: false,
+                    count: 0,
+                    models: [],
+                    groups: {},
+                    groupRatios: {},
+                  },
+                },
+              ];
+            }
+          };
+
+          const parseSource = (source) => {
+            try {
+              if (!source.rawJson) throw new Error("Empty");
+              const obj = JSON.parse(source.rawJson);
+              const rootData = obj.data || obj;
+              let groupRatios = obj.group_ratio ||
+                (obj.data && obj.data.group_ratio) || { default: 1 };
+              let groupNames = obj.usable_group || {};
+              let groups = {};
+              Object.keys(groupRatios).forEach((k) => {
+                groups[k] = groupNames[k] ? `${k} (${groupNames[k]})` : k;
+              });
+
+              let models = [];
+              const parseModelItem = (m, key) => ({
+                name: m.model_name || key,
+                ratio:
+                  typeof m.model_ratio === "number"
+                    ? m.model_ratio
+                    : typeof m === "number"
+                    ? m
+                    : 0,
+                price: typeof m.model_price === "number" ? m.model_price : 0,
+                completion_ratio: m.completion_ratio || 0,
+                quota_type: m.quota_type || 0,
+                enable_groups: m.enable_groups || Object.keys(groupRatios),
+              });
+
+              if (Array.isArray(rootData)) {
+                models = rootData.map((m) => parseModelItem(m));
+              } else if (rootData && rootData.model_ratio) {
+                const ratios = rootData.model_ratio;
+                const completions = rootData.completion_ratio || {};
+                models = Object.keys(ratios).map((k) =>
+                  parseModelItem(
+                    {
+                      model_ratio: ratios[k],
+                      completion_ratio: completions[k],
+                    },
+                    k
+                  )
+                );
+              }
+
+              // Store official order for default sorting
+              if (source.isOfficial) {
+                officialOrderMap.value.clear();
+                models.forEach((m, idx) => {
+                  officialOrderMap.value.set(m.name, idx);
+                });
+              }
+
+              source.parsedData = {
+                valid: models.length > 0,
+                count: models.length,
+                models,
+                groups,
+                groupRatios,
+              };
+              if (!groupRatios[source.selectedGroup])
+                source.selectedGroup = Object.keys(groupRatios)[0] || "default";
+            } catch (e) {
+              source.parsedData = {
+                valid: false,
+                models: [],
+                groups: {},
+                groupRatios: {},
+              };
+            }
+          };
+
+          const fetchOfficialData = async () => {
+            loading.value = true;
+            try {
+              sources.value = sources.value.filter((s) => !s.isOfficial);
+              const res = await fetch(
+                "https://basellm.github.io/llm-metadata/api/newapi/ratio_config-v1-base.json"
+              );
+              const data = await res.json();
+              const officialSource = {
+                id: "official",
+                name: "官方基准",
+                rawJson: JSON.stringify(data, null, 2),
+                isOfficial: true,
+                exchangeRate: globalExchangeRate.value,
+                selectedGroup: "default",
+                showAllModels: true,
+                parsedData: {},
+              };
+              parseSource(officialSource);
+              sources.value.unshift(officialSource);
+              showInputs.value = false;
+            } catch (e) {
+              alert("获取失败");
+            }
+            loading.value = false;
+          };
+
+          const getGroupRatio = (s) =>
+            s.isOfficial ? 1 : s.parsedData.groupRatios[s.selectedGroup] || 1;
+          const getEffectiveRate = (s) =>
+            s.exchangeRate / globalExchangeRate.value;
+
+          const calculateFinalPrice = (
+            baseValue,
+            groupRatio,
+            discountFactor,
+            quotaType
+          ) => {
+            let val = baseValue * groupRatio;
+            if (displayCurrency.value === "RATIO") return val;
+            let priceInUSD = quotaType === 1 ? val : val * 2.0 * discountFactor;
+            if (displayCurrency.value === "CNY")
+              val = priceInUSD * globalExchangeRate.value;
+            else val = priceInUSD;
+            if (quotaType !== 1 && displayUnit.value === "1K") val = val / 1000;
+            return val;
+          };
+
+          const calculateDisplayPrice = (baseValue, source, quotaType) => {
+            const gr = getGroupRatio(source);
+            const factor = getEffectiveRate(source);
+            return calculateFinalPrice(baseValue, gr, factor, quotaType);
+          };
+
+          const formatPrice = (n, quotaType) => {
+            if (n === 0) return "0";
+            let prefix = "";
+            if (displayCurrency.value === "CNY") prefix = "¥";
+            else if (displayCurrency.value === "USD") prefix = "$";
+            else if (displayCurrency.value === "RATIO") prefix = "x";
+            let numStr = n.toLocaleString("en-US", {
+              maximumFractionDigits: 8,
+              useGrouping: false,
+            });
+            return prefix + numStr;
+          };
+
+          // Optimization 1: 3-state Toggle
+          const toggleSort = (col) => {
+            if (sortState.column !== col) {
+              sortState.column = col;
+              sortState.order = "asc";
+            } else {
+              if (sortState.order === "asc") sortState.order = "desc";
+              else if (sortState.order === "desc")
+                sortState.order = null; // Reset to Default
+              else sortState.order = "asc";
+            }
+          };
+
+          const getSortLabel = (col) => {
+            if (sortState.column !== col || !sortState.order) return "默认";
+            if (col === "baseName")
+              return sortState.order === "asc" ? "A→Z" : "Z→A";
+            return sortState.order === "asc" ? "低→高" : "高→低";
+          };
+
+          const openGlobalPopover = (item, source, event) => {
+            if (popover.show && popover.data === item) {
+              popover.show = false;
+              return;
+            }
+            const rect = event.currentTarget.getBoundingClientRect();
+            popover.data = item;
+            popover.source = source;
+            popover.pos =
+              window.innerHeight - rect.bottom < 220 && rect.top > 220
+                ? "top"
+                : "bottom";
+            popover.y =
+              popover.pos === "top" ? rect.top - 10 : rect.bottom + 10;
+            popover.x = rect.left + rect.width / 2;
+            popover.show = true;
+          };
+          const closeGlobalPopover = () => {
+            popover.show = false;
+            popover.data = null;
+          };
+          const handleScroll = () => {
+            if (popover.show) closeGlobalPopover();
+          };
+          const handleGlobalGroupClick = (groupKey) => {
+            if (allowGroupSwitch.value && popover.source) {
+              popover.source.selectedGroup = groupKey;
+              closeGlobalPopover();
+            }
+          };
+
+          const getCurrentGroupCount = (source) => {
+            if (!source.parsedData || !source.parsedData.models) return 0;
+            return source.parsedData.models.filter((m) =>
+              (Array.isArray(m.enable_groups)
+                ? m.enable_groups
+                : Object.keys(source.parsedData.groupRatios)
+              ).includes(source.selectedGroup)
+            ).length;
+          };
+
+          // Feature 2: Rename Rules Logic
+          const addRenameRule = () =>
+            renameRules.value.push({ from: "", to: "" });
+          const removeRenameRule = (idx) => renameRules.value.splice(idx, 1);
+          // Build quick lookup map
+          const renameMap = computed(() => {
+            const map = {};
+            renameRules.value.forEach((r) => {
+              if (r.from && r.to) map[r.from] = r.to;
+            });
+            return map;
+          });
+
+          // Feature 3: Package Management Logic
+          const openPackageModal = (source) => {
+            currentEditSource.value = source;
+            showPackageModal.value = true;
+          };
+
+          const addPackage = (source) => {
+            if (!source || !source.packages) return;
+            const newId = `pkg_${Date.now()}`;
+            source.packages.push({
+              id: newId,
+              name: `套餐${source.packages.length + 1}`,
+              rate: globalExchangeRate.value, // 默认使用全局USDCNY汇率
+            });
+          };
+
+          const removePackage = (source, index) => {
+            if (!source || !source.packages || source.packages.length <= 1)
+              return;
+            source.packages.splice(index, 1);
+            // 如果删除的是当前选中的套餐，切换到第一个
+            if (source.selectedPackage === source.packages[index]?.id) {
+              source.selectedPackage = source.packages[0].id;
+              updateSourceExchangeRate(source);
+            }
+          };
+
+          const updateSourceExchangeRate = (source) => {
+            if (!source || !source.packages || !source.selectedPackage) return;
+            const selectedPkg = source.packages.find(
+              (p) => p.id === source.selectedPackage
+            );
+            if (selectedPkg) {
+              // 直接使用套餐的汇率值
+              source.exchangeRate = selectedPkg.rate;
+            }
+          };
+
+          // Feature 4: Card Drag and Drop Handlers
+          const handleCardDragStart = (index, event) => {
+            draggingCardIndex.value = index;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", index);
+          };
+
+          const handleCardDragEnd = () => {
+            draggingCardIndex.value = null;
+            dragOverCardIndex.value = null;
+          };
+
+          const handleCardDragOver = (index, event) => {
+            if (draggingCardIndex.value === null) return;
+            if (draggingCardIndex.value === index) return;
+            dragOverCardIndex.value = index;
+          };
+
+          const handleCardDrop = (dropIndex) => {
+            if (draggingCardIndex.value === null) return;
+            if (draggingCardIndex.value === dropIndex) return;
+
+            const draggedItem = sources.value[draggingCardIndex.value];
+            sources.value.splice(draggingCardIndex.value, 1);
+            sources.value.splice(dropIndex, 0, draggedItem);
+
+            draggingCardIndex.value = null;
+            dragOverCardIndex.value = null;
+          };
+
+          // Feature 5: Table Header Drag and Drop Handlers
+          const handleHeaderDragStart = (index, event) => {
+            draggingHeaderIndex.value = index;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", index);
+          };
+
+          const handleHeaderDragEnd = () => {
+            draggingHeaderIndex.value = null;
+            dragOverHeaderIndex.value = null;
+          };
+
+          const handleHeaderDragOver = (index, event) => {
+            if (draggingHeaderIndex.value === null) return;
+            if (draggingHeaderIndex.value === index) return;
+            dragOverHeaderIndex.value = index;
+          };
+
+          const handleHeaderDrop = (dropIndex) => {
+            if (draggingHeaderIndex.value === null) return;
+            if (draggingHeaderIndex.value === dropIndex) return;
+
+            // 找到validSources中对应的索引在sources数组中的位置
+            const validSourcesList = validSources.value;
+            const draggedSource = validSourcesList[draggingHeaderIndex.value];
+            const dropSource = validSourcesList[dropIndex];
+
+            // 获取这两个source在原始sources数组中的索引
+            const draggedSourceIndex = sources.value.findIndex(
+              (s) => s.id === draggedSource.id
+            );
+            const dropSourceIndex = sources.value.findIndex(
+              (s) => s.id === dropSource.id
+            );
+
+            // 交换在sources数组中的位置
+            const draggedItem = sources.value[draggedSourceIndex];
+            sources.value.splice(draggedSourceIndex, 1);
+
+            // 重新找到dropSourceIndex（因为删除后索引可能变化）
+            const newDropSourceIndex = sources.value.findIndex(
+              (s) => s.id === dropSource.id
+            );
+            sources.value.splice(newDropSourceIndex, 0, draggedItem);
+
+            draggingHeaderIndex.value = null;
+            dragOverHeaderIndex.value = null;
+          };
+
+          onMounted(() => {
+            init();
+            window.addEventListener("click", closeGlobalPopover);
+            window.addEventListener("scroll", handleScroll, true);
+          });
+          onUnmounted(() => {
+            window.removeEventListener("click", closeGlobalPopover);
+            window.removeEventListener("scroll", handleScroll, true);
+          });
+
+          const validSources = computed(() =>
+            sources.value.filter((s) => s.parsedData.valid)
+          );
+          const validSourceCount = computed(() => validSources.value.length);
+
+          // Watch and auto-save to localStorage
+          watch(globalExchangeRate, (val) => {
+            sources.value.forEach((s) => {
+              if (s.isOfficial) s.exchangeRate = val;
+            });
+            saveToLocalStorage();
+          });
+
+          watch(
+            sources,
+            (newSources) => {
+              // 当套餐汇率变化时，同步更新渠道汇率
+              newSources.forEach((source) => {
+                if (
+                  !source.isOfficial &&
+                  source.packages &&
+                  source.selectedPackage
+                ) {
+                  const selectedPkg = source.packages.find(
+                    (p) => p.id === source.selectedPackage
+                  );
+                  if (selectedPkg && source.exchangeRate !== selectedPkg.rate) {
+                    source.exchangeRate = selectedPkg.rate;
+                  }
+                }
+              });
+              saveToLocalStorage();
+            },
+            { deep: true }
+          );
+
+          watch(
+            [
+              displayCurrency,
+              displayUnit,
+              filterMode,
+              allowGroupSwitch,
+              showInputs,
+              renameRules,
+            ],
+            () => {
+              saveToLocalStorage();
+            },
+            { deep: true }
+          );
+
+          const tableRows = computed(() => {
+            const rowMap = new Map();
+            const officialSource = validSources.value.find((s) => s.isOfficial);
+            let baseNames = officialSource
+              ? officialSource.parsedData.models
+                  .map((m) => m.name)
+                  .sort((a, b) => b.length - a.length)
+              : [];
+
+            validSources.value.forEach((source) => {
+              const allGroups = source.parsedData.groupRatios;
+              source.parsedData.models.forEach((model) => {
+                const enabledGroups = Array.isArray(model.enable_groups)
+                  ? model.enable_groups
+                  : Object.keys(allGroups);
+                const isAvailableInCurrentGroup = enabledGroups.includes(
+                  source.selectedGroup
+                );
+                if (
+                  !source.isOfficial &&
+                  !source.showAllModels &&
+                  !isAvailableInCurrentGroup
+                )
+                  return;
+
+                // Feature 2: Apply Rename Logic
+                let mappedName = renameMap.value[model.name] || model.name;
+                let isRenamed = mappedName !== model.name;
+
+                let baseName = mappedName;
+                let diff = "";
+                // Only try prefix matching if NOT explicitly renamed
+                if (!isRenamed && baseNames.length > 0) {
+                  const match =
+                    baseNames.find((bn) => model.name === bn) ||
+                    baseNames.find((bn) => model.name.includes(bn));
+                  if (match) {
+                    baseName = match;
+                    diff = model.name
+                      .replace(match, "")
+                      .replace(/^[-/:.|]+|[-/:.|]+$/g, "");
+                  }
+                }
+
+                let effectiveBase =
+                  model.quota_type === 1 && model.price > 0
+                    ? model.price
+                    : model.ratio;
+                if (!rowMap.has(baseName))
+                  rowMap.set(baseName, {
+                    baseName,
+                    variants: {},
+                    officialBase: 0,
+                    completionRatio: model.completion_ratio,
+                    quotaType: model.quota_type,
+                  });
+                const row = rowMap.get(baseName);
+                if (source.isOfficial && !diff && !isRenamed) {
+                  row.officialBase = effectiveBase;
+                  row.completionRatio = model.completion_ratio;
+                  row.quotaType = model.quota_type;
+                }
+                if (!row.variants[source.id]) row.variants[source.id] = [];
+
+                const groupPrices = [];
+                enabledGroups.forEach((gKey) => {
+                  if (allGroups[gKey] !== undefined)
+                    groupPrices.push({
+                      key: gKey,
+                      rawBase: effectiveBase * allGroups[gKey],
+                    });
+                });
+
+                row.variants[source.id].push(
+                  reactive({
+                    originalName: model.name,
+                    diff,
+                    rawBase: effectiveBase,
+                    quotaType: model.quota_type,
+                    displayPrice: calculateDisplayPrice(
+                      effectiveBase,
+                      source,
+                      model.quota_type
+                    ),
+                    displayOutputPrice: calculateDisplayPrice(
+                      effectiveBase * model.completionRatio,
+                      source,
+                      model.quota_type
+                    ),
+                    completionRatio: model.completion_ratio,
+                    isCheapest: false,
+                    hasMultipleGroups: groupPrices.length > 0,
+                    canSwitchGroup:
+                      groupPrices.length > 0 &&
+                      (!isAvailableInCurrentGroup || groupPrices.length > 1),
+                    isAvailableInCurrentGroup,
+                    groupPrices,
+                    isRenamed,
+                  })
+                );
+              });
+            });
+
+            let rows = Array.from(rowMap.values());
+
+            // Re-calc prices & cheapest
+            rows.forEach((row) => {
+              validSources.value.forEach((s) => {
+                if (row.variants[s.id])
+                  row.variants[s.id].forEach((v) => {
+                    v.displayPrice = calculateDisplayPrice(
+                      v.rawBase,
+                      s,
+                      v.quotaType
+                    );
+                    v.displayOutputPrice = calculateDisplayPrice(
+                      v.rawBase * v.completionRatio,
+                      s,
+                      v.quotaType
+                    );
+                  });
+              });
+            });
+
+            if (searchQuery.value) {
+              const reg = new RegExp(searchQuery.value, "i");
+              rows = rows.filter(
+                (r) =>
+                  reg.test(r.baseName) ||
+                  Object.values(r.variants)
+                    .flat()
+                    .some((v) => reg.test(v.originalName))
+              );
+            }
+            const nonOff = validSources.value.filter((s) => !s.isOfficial);
+            if (filterMode.value === "nonofficial" && nonOff.length > 0)
+              rows = rows.filter((r) =>
+                nonOff.some((s) => r.variants[s.id]?.length > 0)
+              );
+            else if (filterMode.value === "intersection")
+              rows = rows.filter((r) =>
+                validSources.value.every((s) => r.variants[s.id]?.length > 0)
+              );
+
+            rows.forEach((row) => {
+              let tokenPrices = [];
+              let fixedPrices = [];
+              validSources.value.forEach((s) =>
+                row.variants[s.id]?.forEach((v) => {
+                  if (v.isAvailableInCurrentGroup) {
+                    if (v.quotaType === 1) fixedPrices.push(v.displayPrice);
+                    else tokenPrices.push(v.displayPrice);
+                  }
+                })
+              );
+              const minToken = tokenPrices.length
+                ? Math.min(...tokenPrices)
+                : Infinity;
+              const minFixed = fixedPrices.length
+                ? Math.min(...fixedPrices)
+                : Infinity;
+              validSources.value.forEach((s) =>
+                row.variants[s.id]?.forEach((v) => {
+                  if (v.isAvailableInCurrentGroup) {
+                    if (v.quotaType === 1)
+                      v.isCheapest = Math.abs(v.displayPrice - minFixed) < 1e-9;
+                    else
+                      v.isCheapest = Math.abs(v.displayPrice - minToken) < 1e-9;
+                  } else v.isCheapest = false;
+                })
+              );
+            });
+
+            rows.sort((a, b) => {
+              // 1. Availability
+              const sId =
+                sortState.column === "baseName" ? null : sortState.column;
+              const availA = sId
+                ? a.variants[sId] &&
+                  a.variants[sId].some((x) => x.isAvailableInCurrentGroup)
+                : true;
+              const availB = sId
+                ? b.variants[sId] &&
+                  b.variants[sId].some((x) => x.isAvailableInCurrentGroup)
+                : true;
+              if (availA !== availB) return availA ? -1 : 1;
+
+              // 2. Quota Type
+              const qA = a.quotaType ?? 0;
+              const qB = b.quotaType ?? 0;
+              if (qA !== qB) return qA - qB;
+
+              // 3. Sort Logic
+              if (sortState.column === "baseName" || !sId) {
+                if (!sortState.order) {
+                  // Default Sort: Official Order > Alphabetical
+                  const idxA = officialOrderMap.value.has(a.baseName)
+                    ? officialOrderMap.value.get(a.baseName)
+                    : 99999;
+                  const idxB = officialOrderMap.value.has(b.baseName)
+                    ? officialOrderMap.value.get(b.baseName)
+                    : 99999;
+                  if (idxA !== idxB) return idxA - idxB;
+                  return a.baseName.localeCompare(b.baseName);
+                }
+                // Name Sort (A-Z, Z-A)
+                return sortState.order === "asc"
+                  ? a.baseName.localeCompare(b.baseName)
+                  : b.baseName.localeCompare(a.baseName);
+              } else {
+                if (!availA) return a.baseName.localeCompare(b.baseName);
+                const isAsc = sortState.order === "asc";
+                const getVal = (row) => {
+                  const vars = row.variants[sId].filter(
+                    (x) => x.isAvailableInCurrentGroup
+                  );
+                  const prices = vars.map((x) => x.displayPrice);
+                  return isAsc ? Math.min(...prices) : Math.max(...prices);
+                };
+                const pA = getVal(a);
+                const pB = getVal(b);
+                if (!sortState.order)
+                  return a.baseName.localeCompare(b.baseName);
+                return isAsc ? pA - pB : pB - pA;
+              }
+            });
+
+            return rows;
+          });
+
+          const formatNum = (n) => parseFloat((n || 0).toFixed(2));
+          const getDiscountClass = (m, o) => {
+            if (!o) return "";
+            const p = m / o;
+            return p < 0.8 ? "good" : p > 1.1 ? "bad" : "normal";
+          };
+          const getDiscountText = (m, o) =>
+            o ? `${((m / o) * 100).toFixed(0)}%` : "";
+
+          const clearLocalStorage = () => {
+            if (confirm("确定要清除所有保存的配置吗？此操作不可恢复。")) {
+              try {
+                localStorage.removeItem(STORAGE_KEY);
+                alert("配置已清除，页面将重新加载");
+                location.reload();
+              } catch (e) {
+                console.error("清除配置失败:", e);
+                alert("清除失败，请查看控制台");
+              }
+            }
+          };
+
+          // 导出配置到文件
+          const exportConfigToFile = () => {
+            try {
+              const data = {
+                sources: sources.value.map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  rawJson: s.rawJson,
+                  isOfficial: s.isOfficial,
+                  exchangeRate: s.exchangeRate,
+                  selectedGroup: s.selectedGroup,
+                  showAllModels: s.showAllModels,
+                  packages: s.packages,
+                  selectedPackage: s.selectedPackage,
+                })),
+                globalExchangeRate: globalExchangeRate.value,
+                displayCurrency: displayCurrency.value,
+                displayUnit: displayUnit.value,
+                filterMode: filterMode.value,
+                allowGroupSwitch: allowGroupSwitch.value,
+                showInputs: showInputs.value,
+                renameRules: renameRules.value,
+                exportTime: new Date().toISOString(),
+                version: "v8.0",
+              };
+
+              const jsonStr = JSON.stringify(data, null, 2);
+              const blob = new Blob([jsonStr], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `wn_os_price_config_${
+                new Date().toISOString().split("T")[0]
+              }.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              alert("✅ 配置已导出到下载文件夹");
+            } catch (e) {
+              console.error("导出失败:", e);
+              alert("❌ 导出失败：" + e.message);
+            }
+          };
+
+          // 触发文件选择
+          const fileInput = ref(null);
+          const triggerImportFile = () => {
+            if (fileInput.value) {
+              fileInput.value.click();
+            }
+          };
+
+          // 从文件导入配置
+          const importConfigFromFile = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const data = JSON.parse(e.target.result);
+
+                // 验证数据格式
+                if (!data.sources || !Array.isArray(data.sources)) {
+                  throw new Error("配置文件格式错误：缺少 sources 字段");
+                }
+
+                // 恢复配置
+                sources.value = data.sources.map((s) => ({
+                  ...s,
+                  // 为旧配置添加默认packages
+                  packages: s.packages || [
+                    { id: "pkg_1", name: "标准充值", rate: 7.2 },
+                  ],
+                  selectedPackage:
+                    s.selectedPackage ||
+                    (s.packages && s.packages[0]?.id) ||
+                    "pkg_1",
+                  parsedData: {
+                    valid: false,
+                    count: 0,
+                    models: [],
+                    groups: {},
+                    groupRatios: {},
+                  },
+                }));
+
+                // 重新解析所有渠道
+                sources.value.forEach((source) => {
+                  if (source.rawJson) parseSource(source);
+                  // 同步套餐汇率到渠道汇率
+                  if (
+                    !source.isOfficial &&
+                    source.packages &&
+                    source.selectedPackage
+                  ) {
+                    updateSourceExchangeRate(source);
+                  }
+                });
+
+                // 恢复其他配置
+                if (data.globalExchangeRate)
+                  globalExchangeRate.value = data.globalExchangeRate;
+                if (data.displayCurrency)
+                  displayCurrency.value = data.displayCurrency;
+                if (data.displayUnit) displayUnit.value = data.displayUnit;
+                if (data.filterMode) filterMode.value = data.filterMode;
+                if (data.allowGroupSwitch !== undefined)
+                  allowGroupSwitch.value = data.allowGroupSwitch;
+                if (data.showInputs !== undefined)
+                  showInputs.value = data.showInputs;
+                if (data.renameRules) renameRules.value = data.renameRules;
+
+                // 保存到 localStorage
+                saveToLocalStorage();
+
+                alert(
+                  `✅ 配置导入成功！\n渠道数量: ${
+                    data.sources.length
+                  }\n导出时间: ${data.exportTime || "未知"}`
+                );
+
+                // 清空文件选择器
+                event.target.value = "";
+              } catch (e) {
+                console.error("导入失败:", e);
+                alert("❌ 导入失败：" + e.message);
+                event.target.value = "";
+              }
+            };
+
+            reader.onerror = () => {
+              alert("❌ 文件读取失败");
+              event.target.value = "";
+            };
+
+            reader.readAsText(file);
+          };
+
+          return {
+            sources,
+            globalExchangeRate,
+            loading,
+            searchQuery,
+            showInputs,
+            filterMode,
+            allowGroupSwitch,
+            popover,
+            displayCurrency,
+            displayUnit,
+            sortState,
+            showRenameModal,
+            renameRules,
+            hasOfficial: computed(() =>
+              sources.value.some((s) => s.isOfficial)
+            ),
+            fetchOfficialData,
+            addSource: () =>
+              sources.value.push({
+                id: Date.now(),
+                name: "新渠道",
+                rawJson: "",
+                isOfficial: false,
+                exchangeRate: 7.2,
+                selectedGroup: "default",
+                showAllModels: true,
+                packages: [
+                  { id: `pkg_${Date.now()}`, name: "标准充值", rate: 7.2 },
+                ],
+                selectedPackage: `pkg_${Date.now()}`,
+                parsedData: { valid: false, groups: {} },
+              }),
+            removeSource: (i) => sources.value.splice(i, 1),
+            parseSource,
+            validSources,
+            validSourceCount,
+            getEffectiveRate,
+            tableRows,
+            formatPrice,
+            formatNum,
+            getDiscountClass,
+            getDiscountText,
+            calculateDisplayPrice,
+            calculateFinalPrice,
+            openGlobalPopover,
+            handleGlobalGroupClick,
+            toggleSort,
+            getSortLabel,
+            getCurrentGroupCount,
+            addRenameRule,
+            removeRenameRule,
+            clearLocalStorage,
+            exportConfigToFile,
+            triggerImportFile,
+            importConfigFromFile,
+            fileInput,
+            showPackageModal,
+            currentEditSource,
+            openPackageModal,
+            addPackage,
+            removePackage,
+            updateSourceExchangeRate,
+            draggingCardIndex,
+            dragOverCardIndex,
+            handleCardDragStart,
+            handleCardDragEnd,
+            handleCardDragOver,
+            handleCardDrop,
+            draggingHeaderIndex,
+            dragOverHeaderIndex,
+            handleHeaderDragStart,
+            handleHeaderDragEnd,
+            handleHeaderDragOver,
+            handleHeaderDrop,
+          };
+        },
+      }).mount("#app");
     </script>
-</body>
+  </body>
 </html>
