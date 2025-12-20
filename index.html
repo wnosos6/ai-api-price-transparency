@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>wn_os AI API 价格透视镜</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,6 +10,7 @@
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background-color: #f8fafc;
+        -webkit-tap-highlight-color: transparent;
       }
       .card {
         background: white;
@@ -400,26 +401,26 @@
     </style>
   </head>
   <body>
-    <div id="app" v-cloak class="container mx-auto p-4 max-w-[1900px]">
+    <div id="app" v-cloak class="container mx-auto p-2 md:p-4 max-w-[1900px]">
       <header
         class="mb-4 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm sticky top-2 z-40"
       >
-        <div>
-          <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <div class="flex flex-wrap items-center justify-between w-full xl:w-auto gap-2">
+          <h1 class="text-sm md:text-xl font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
             <span>💰 wn_os AI API 价格透视镜</span>
             <span
-              class="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded font-mono"
-              >v8.0</span
+              class="bg-indigo-600 text-white text-[10px] md:text-xs px-2 py-0.5 rounded font-mono"
+              >v0.3</span
             >
             <span
-              class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded font-medium"
+              class="bg-green-100 text-green-700 text-[10px] md:text-xs px-2 py-0.5 rounded font-medium"
               title="配置自动保存到浏览器本地存储"
-              >💾 自动保存</span
+              >💾</span
             >
           </h1>
         </div>
 
-        <div class="flex flex-wrap gap-3 items-center h-[42px]">
+        <div class="flex flex-wrap gap-2 md:gap-3 items-center min-h-[42px]">
           <div class="flex flex-col gap-1 h-full justify-center">
             <div class="segmented-control">
               <button
@@ -450,107 +451,95 @@
                 :class="{active: displayCurrency === 'USD'}"
               >
                 <span class="text-[10px]">USD</span>
-                <span class="text-[8px] opacity-70 scale-90 -mt-0.5">美元</span>
               </button>
               <button
                 @click="displayCurrency = 'CNY'"
                 :class="{active: displayCurrency === 'CNY'}"
               >
                 <span class="text-[10px]">CNY</span>
-                <span class="text-[8px] opacity-70 scale-90 -mt-0.5"
-                  >人民币</span
-                >
               </button>
             </div>
           </div>
 
-          <div class="w-px h-8 bg-slate-200 mx-1"></div>
+          <div class="w-px h-8 bg-slate-200 mx-1 hidden md:block"></div>
 
           <div class="flex flex-col gap-1 h-full justify-center">
-            <div class="segmented-control min-w-[140px]">
+            <div class="segmented-control min-w-[100px] md:min-w-[140px]">
               <button
                 @click="allowGroupSwitch = false"
                 :class="{active: !allowGroupSwitch}"
               >
-                <span>👁️ 仅查看</span>
+                <span>👁️</span>
               </button>
               <button
                 @click="allowGroupSwitch = true"
                 :class="{active: allowGroupSwitch, '!text-green-600': allowGroupSwitch}"
               >
-                <span>⚡ 点击切换</span>
+                <span>⚡ 切换</span>
               </button>
             </div>
           </div>
 
-          <div class="w-px h-8 bg-slate-200 mx-1"></div>
+          <div class="flex gap-2 items-center flex-wrap">
+              <button
+                @click="showRenameModal = true"
+                class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 rounded text-xs font-bold h-[42px] flex items-center gap-1 transition-colors"
+                title="设置模型重命名映射"
+              >
+                <span>⚙️</span>
+                <span
+                  v-if="renameRules.length > 0"
+                  class="bg-indigo-100 text-indigo-600 px-1.5 rounded-full text-[9px]"
+                  >{{ renameRules.length }}</span
+                >
+              </button>
 
-          <button
-            @click="showRenameModal = true"
-            class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 rounded text-xs font-bold h-[42px] flex items-center gap-1 transition-colors"
-            title="设置模型重命名映射"
-          >
-            <span>⚙️ 映射</span>
-            <span
-              v-if="renameRules.length > 0"
-              class="bg-indigo-100 text-indigo-600 px-1.5 rounded-full text-[9px]"
-              >{{ renameRules.length }}</span
-            >
-          </button>
+              <div
+                class="flex items-center px-3 bg-slate-50 rounded border border-slate-200 h-[42px]"
+              >
+                <label class="text-xs font-bold text-slate-500 mr-1"
+                  >汇率:</label
+                >
+                <input
+                  type="number"
+                  v-model.number="globalExchangeRate"
+                  class="w-10 md:w-14 bg-transparent font-mono font-bold text-blue-600 outline-none text-right"
+                  step="0.01"
+                />
+              </div>
 
-          <div
-            class="flex items-center px-3 bg-slate-50 rounded border border-slate-200 h-full"
-          >
-            <label class="text-xs font-bold text-slate-500 mr-2"
-              >USDCNY汇率:</label
-            >
-            <input
-              type="number"
-              v-model.number="globalExchangeRate"
-              class="w-14 bg-transparent font-mono font-bold text-blue-600 outline-none text-right"
-              step="0.01"
-            />
+              <button
+                @click="fetchOfficialData"
+                :disabled="loading"
+                class="bg-slate-800 hover:bg-slate-900 text-white px-3 md:px-4 rounded text-sm flex items-center gap-2 h-[42px] transition-colors"
+              >
+                <span v-if="loading" class="animate-spin">⟳</span>
+                {{ hasOfficial ? '刷新' : '基准' }}
+              </button>
+
+              <button
+                @click="exportConfigToFile"
+                class="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-3 rounded text-xs font-bold h-[42px] transition-colors"
+                title="导出配置到JSON文件"
+              >
+                📥
+              </button>
+
+              <button
+                @click="triggerImportFile"
+                class="bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 px-3 rounded text-xs font-bold h-[42px] transition-colors"
+                title="从JSON文件导入配置"
+              >
+                📤
+              </button>
+              <input
+                type="file"
+                ref="fileInput"
+                @change="importConfigFromFile"
+                accept=".json"
+                style="display: none"
+              />
           </div>
-
-          <button
-            @click="fetchOfficialData"
-            :disabled="loading"
-            class="bg-slate-800 hover:bg-slate-900 text-white px-4 rounded text-sm flex items-center gap-2 h-full transition-colors"
-          >
-            <span v-if="loading" class="animate-spin">⟳</span>
-            {{ hasOfficial ? '刷新' : '加载基准' }}
-          </button>
-
-          <button
-            @click="exportConfigToFile"
-            class="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 px-3 rounded text-xs font-bold h-full transition-colors"
-            title="导出配置到JSON文件"
-          >
-            📥 导出配置
-          </button>
-
-          <button
-            @click="triggerImportFile"
-            class="bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 px-3 rounded text-xs font-bold h-full transition-colors"
-            title="从JSON文件导入配置"
-          >
-            📤 导入配置
-          </button>
-          <input
-            type="file"
-            ref="fileInput"
-            @change="importConfigFromFile"
-            accept=".json"
-            style="display: none"
-          />
-
-          <button
-            @click="clearLocalStorage"
-            class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 rounded text-xs font-bold h-full transition-colors"
-            title="清除所有保存的配置"
-          >
-            🗑️ 清除缓存
-          </button>
         </div>
       </header>
 
@@ -567,11 +556,11 @@
               class="w-full pl-8 pr-2 py-1.5 text-sm border border-slate-300 rounded focus:border-indigo-500 outline-none"
             />
           </div>
-          <div class="flex bg-slate-100 p-1 rounded text-xs font-bold">
+          <div class="flex bg-slate-100 p-1 rounded text-xs font-bold w-full md:w-auto overflow-x-auto">
             <button
               v-for="m in ['nonofficial', 'intersection', 'all']"
               @click="filterMode = m"
-              class="px-3 py-1.5 rounded transition-all capitalize"
+              class="px-3 py-1.5 rounded transition-all capitalize whitespace-nowrap flex-1 md:flex-none"
               :class="filterMode === m ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
             >
               {{ m === 'nonofficial' ? '第三方优先' : (m === 'intersection' ?
@@ -601,7 +590,6 @@
             @dragover.prevent="handleCardDragOver(index, $event)"
             @drop="handleCardDrop(index)"
           >
-            <!-- 拖拽手柄 -->
             <div
               class="drag-handle"
               draggable="true"
@@ -612,7 +600,6 @@
               <span class="drag-handle-icon">⋮⋮</span>
             </div>
 
-            <!-- 删除按钮 -->
             <div
               v-if="!source.isOfficial"
               @click="removeSource(index)"
@@ -629,7 +616,6 @@
                 style="max-width: 120px"
               />
 
-              <!-- 套餐选择和管理 -->
               <div
                 v-if="!source.isOfficial"
                 class="flex items-center gap-1 flex-shrink-0"
@@ -637,7 +623,7 @@
                 <select
                   v-model="source.selectedPackage"
                   @change="updateSourceExchangeRate(source)"
-                  class="text-[10px] border border-slate-300 rounded bg-white py-1 px-2 outline-none font-medium text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer"
+                  class="text-[10px] border border-slate-300 rounded bg-white py-1 px-2 outline-none font-medium text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer max-w-[100px]"
                 >
                   <option
                     v-for="pkg in source.packages"
@@ -656,7 +642,6 @@
                 </button>
               </div>
 
-              <!-- 基准汇率输入（官方渠道） -->
               <div
                 v-else
                 class="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200 flex-shrink-0"
@@ -758,7 +743,7 @@
                 class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200"
               >
                 <th
-                  class="p-3 font-bold sticky left-0 bg-slate-100 z-20 w-64 border-r border-slate-200"
+                  class="p-3 font-bold sticky left-0 bg-slate-100 z-20 w-32 md:w-48 lg:w-64 border-r border-slate-200"
                 >
                   <div class="flex items-center justify-between">
                     <span>模型 ({{ displayUnit }})</span>
@@ -767,7 +752,7 @@
                       :class="{active: sortState.column === 'baseName'}"
                       @click="toggleSort('baseName')"
                     >
-                      <span class="sort-label"
+                      <span class="sort-label hidden md:inline"
                         >{{ getSortLabel('baseName') }}</span
                       >
                       <span
@@ -787,7 +772,7 @@
                 <th
                   v-for="(source, sourceIndex) in validSources"
                   :key="source.id"
-                  class="p-2 text-center min-w-[180px] border-r border-slate-200 draggable-header"
+                  class="p-2 text-center min-w-[140px] md:min-w-[180px] border-r border-slate-200 draggable-header"
                   :class="[
                     {'bg-green-50/50': source.isOfficial},
                     draggingHeaderIndex === sourceIndex ? 'dragging' : '',
@@ -801,7 +786,7 @@
                 >
                   <div class="flex items-center justify-center gap-2 relative">
                     <div class="flex flex-col">
-                      <span class="font-bold text-slate-800"
+                      <span class="font-bold text-slate-800 text-xs md:text-sm"
                         >{{ source.name }}</span
                       >
                       <div
@@ -809,7 +794,7 @@
                         class="flex justify-center gap-2 mt-1"
                       >
                         <span
-                          class="text-[10px] bg-white px-1 rounded border border-slate-200 text-slate-500 truncate max-w-[100px]"
+                          class="text-[10px] bg-white px-1 rounded border border-slate-200 text-slate-500 truncate max-w-[80px] md:max-w-[100px]"
                           >{{ source.parsedData.groups[source.selectedGroup] ||
                           source.selectedGroup }}</span
                         >
@@ -849,9 +834,9 @@
                 class="group transition-colors"
               >
                 <td
-                  class="p-3 border-r border-slate-200 font-mono text-slate-700 sticky left-0 z-20 text-xs border-b border-slate-100 shadow-sm"
+                  class="p-2 md:p-3 border-r border-slate-200 font-mono text-slate-700 sticky left-0 z-20 text-xs border-b border-slate-100 shadow-sm"
                 >
-                  <div class="font-bold">{{ row.baseName }}</div>
+                  <div class="font-bold truncate max-w-[110px] md:max-w-none" :title="row.baseName">{{ row.baseName }}</div>
                   <div
                     v-if="row.officialBase > 0"
                     class="text-[10px] text-green-600 mt-1"
@@ -1073,7 +1058,6 @@
         </p>
       </div>
 
-      <!-- 套餐管理弹窗 -->
       <div
         v-if="showPackageModal"
         class="rename-overlay"
